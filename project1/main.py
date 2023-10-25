@@ -20,19 +20,19 @@ def read_data(X_train_path, y_train_path, X_test_path):
 
 
 def get_model():
-    estimators = [('lr', RidgeCV()),
-                  ('lasso', Lasso(alpha=0.134694)),
-                  ('enet', ElasticNet(alpha=0.201, l1_ratio=0.005)),
-                  ('lm', LinearRegression()),
-                  ('kernel_ridge', KernelRidge(alpha=2.0, kernel='polynomial', degree=1, coef0=0.005)),
-                  ('svr', LinearSVR(random_state=42)),
-                  ('xgb', XGBRegressor(n_estimators=1000, max_depth=7, eta=0.1, colsample_bytree=0.8)),
-                  ('extratree', ExtraTreesRegressor(n_estimators=1000, random_state=0)),
-                  ('adaboost', AdaBoostRegressor(n_estimators=1000, random_state=0)),
-                  ('svr_lin', SVR(kernel='linear')),
-                  ['svr_rbf', SVR(kernel='rbf')],
-                  ('mn', KNeighborsRegressor()),
-                  ]
+    estimators = [
+        ('lr', RidgeCV()),
+        ('lasso', Lasso(alpha=0.134694)),
+        # ('enet', ElasticNet(alpha=0.201, l1_ratio=0.005)),
+        # ('lm', LinearRegression()),
+        # ('kernel_ridge', KernelRidge(alpha=2.0, kernel='polynomial', degree=1, coef0=0.005)),
+        ('xgb', XGBRegressor(n_estimators=1000, max_depth=7, eta=0.1, colsample_bytree=0.8)),
+        ('extratree', ExtraTreesRegressor(n_estimators=1000, random_state=0)),
+        ('adaboost', AdaBoostRegressor(n_estimators=1000, random_state=0)),
+        # ('svr_lin', SVR(kernel='linear')),
+        # ['svr_rbf', SVR(kernel='rbf')],
+        ('mn', KNeighborsRegressor()),
+    ]
     model = StackingRegressor(estimators=estimators,
                            final_estimator=RandomForestRegressor(n_estimators=100, random_state=42))
     return model
@@ -47,7 +47,7 @@ def main():
     X_train, y_train, X_test = read_data(X_train_path="data/X_train.csv",
                                          y_train_path="data/y_train.csv",
                                          X_test_path="data/X_test.csv")
-    ids_train, ids_test = X_train[1:, 0], X_test[1:, 0]
+    ids_train, ids_test = X_train[1:, 0], X_test[1:, 0].astype(int)
     X_train, y_train, X_test = X_train[1:, 1:], y_train[1:, 1:].ravel(), X_test[1:, 1:]
     X_train, y_train, X_test = preprocess(X_train, y_train, X_test)
 
@@ -76,8 +76,7 @@ def main():
     model.fit(X_train, y_train)
     pred = model.predict(X_test)
     res = np.column_stack((ids_test, pred))
-    print(res)
-    np.savetxt("Dataset/out.csv", res, delimiter=",", header="id,y")
+    np.savetxt("data/out.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')
 
 
 if __name__ == "__main__":
