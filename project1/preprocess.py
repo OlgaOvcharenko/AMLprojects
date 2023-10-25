@@ -1,5 +1,5 @@
 import numpy as np
-import umap
+import phate
 from mlxtend.plotting.pca_correlation_graph import corr2_coeff
 from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
@@ -16,11 +16,10 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = impute_mv(X_train, X_test)
     X_train, X_test = scale_data(X_train, X_test)
 
-    # TODO
-    X_train, X_test = detect_remove_outliers(X_train, X_test)
+    X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
     X_train, X_test = select_features(X_train, y_train, X_test)
 
-    X_train, X_test = reduce_dim(X_train, X_test)
+    # X_train, X_test = reduce_dim(X_train, X_test)
     return X_train, y_train, X_test
 
 
@@ -28,8 +27,8 @@ def reduce_dim(X_train, X_test, method: str = 'PCA'):
     if method == 'PCA':
         reducer = PCA(n_components='mle', svd_solver='auto')
 
-    elif method == 'UMAP':
-        reducer = umap.UMAP()
+    elif method == 'PHATE':
+        reducer = phate.PHATE(n_components=30)
 
     else:
         return X_train, X_test
@@ -42,10 +41,6 @@ def reduce_dim(X_train, X_test, method: str = 'PCA'):
 def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = remove_correlated(X_train, X_test)
 
-    # # Chi
-    # f_p_values = chi2(X_train, y_train)
-    # print(f_p_values)
-
     # Select k best
     fs = SelectKBest(score_func=f_regression, k=175)
 
@@ -56,7 +51,7 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
 
 def remove_correlated(X_train: np.array, X_test: np.array):
     # Constant features
-    var_threshold = VarianceThreshold(threshold=0)  # threshold = 0 for constant
+    var_threshold = VarianceThreshold(threshold=0.4)  # TODO threshold = 0 for constant
     var_threshold.fit_transform(X_train)
     var_threshold.transform(X_test)
 
@@ -97,12 +92,13 @@ def impute_mv(X_train: np.array, X_test: np.array, method: str = 'median'):
     return X_train, X_test
 
 
-def detect_remove_outliers(X_train: np.array, X_test: np.array):
-    # TODO
-    train_pred, test_pred = detect_outlier_obs(X_train, X_test)
-    X_train = X_train[train_pred]
-    X_test = X_test[train_pred]
-    return X_train, X_test
+def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.array):
+    train_pred1 = detect_outlier_obs(X_train, X_test, 'ECOD')
+    # train_pred2 = detect_outlier_obs(X_train, X_test, 'isolation_forest')
+    X_train = X_train[train_pred1]
+    y_train = y_train[train_pred1]
+
+    return X_train, y_train, X_test
 
 
 def detect_outlier_obs(X_train: np.array, X_test: np.array, method: str = 'isolation_forest'):
@@ -111,22 +107,21 @@ def detect_outlier_obs(X_train: np.array, X_test: np.array, method: str = 'isola
         for i in range(X_train.shape[1]):
             ecod = ECOD(contamination=0.05)
             ecod.fit(X_train[:, i].reshape(-1, 1))
-            y_train_pred = np.array(ecod.labels_) == 0
-            y_test_pred = np.array(ecod.predict(X_test[:, i].reshape(-1, 1))) == 0
-            train_pred.append(y_train_pred)
-            test_pred.append(y_test_pred)
+            train_pred = np.array(ecod.labels_) == 0
+            # test_pred = np.array(ecod.predict(X_test[:, i].reshape(-1, 1))) == 0
 
     elif method == 'isolation_forest':
         for i in range(X_train.shape[1]):
             clf = IsolationForest(n_estimators=150, max_samples='auto', contamination=float(0.1))
             y_train_pred = np.array(clf.fit_predict(X_train[:, i].reshape(-1, 1))) == 1
-            y_test_pred = np.array(clf.predict(X_test[:, i].reshape(-1, 1))) == 1
             train_pred.append(y_train_pred)
-            test_pred.append(y_test_pred)
+            # y_test_pred = np.array(clf.predict(X_test[:, i].reshape(-1, 1))) == 1
+            # test_pred.append(y_test_pred)
 
-            print(sum([t == -1 for t in y_test_pred]))
+        train_pred = np.array(train_pred).sum(axis=1)
+        # test_pred = np.array(test_pred).sum(axis=1)
 
     else:
         raise Exception(f"Detect: {method} is not implemented")
 
-    return train_pred, test_pred
+    return train_pred
