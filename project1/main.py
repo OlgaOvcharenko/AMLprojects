@@ -8,7 +8,7 @@ from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RationalQuadratic
 from sklearn.kernel_ridge import KernelRidge
 from sklearn.linear_model import RidgeCV, Lasso, ElasticNet, LinearRegression
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, GridSearchCV
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import LinearSVR, SVR
 from xgboost import XGBRegressor
@@ -128,6 +128,37 @@ def main():
 
     res = np.column_stack((ids_test, pred))
     np.savetxt("data/out.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')
+
+
+def tune_params_cv():
+    X_train, y_train, X_test = read_data(X_train_path="data/X_train.csv",
+                                         y_train_path="data/y_train.csv",
+                                         X_test_path="data/X_test.csv")
+
+    X_train, y_train, X_test = X_train[1:, 1:], y_train[1:, 1:].ravel(), X_test[1:, 1:]
+    X_train, y_train, X_test = preprocess(X_train, y_train, X_test)
+
+    print("Preprocessed.")
+
+    print("\nModels and folds.")
+
+    model = get_model()
+
+    grid = GridSearchCV(
+        estimator=model,
+        param_grid={
+            'lgbm__max_bin': [1000, 10000, 50000],
+            'lgbm__learning_rate': [0.0001, 0.001],
+            'lgbm_regressor__num_iterations': [1000],
+
+        },
+        cv=5,
+        refit=True
+    )
+
+    grid.fit(X_train, y_train)
+
+    print("Best: %f using %s" % (grid.best_score_, grid.best_params_))
 
 
 if __name__ == "__main__":
