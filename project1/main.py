@@ -1,6 +1,7 @@
 import cubist
 import best
 import numpy as np
+from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
 from sklearn.ensemble import ExtraTreesRegressor, AdaBoostRegressor, StackingRegressor, RandomForestRegressor
 from sklearn.gaussian_process import GaussianProcessRegressor
@@ -12,7 +13,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import LinearSVR, SVR
 from xgboost import XGBRegressor
 from preprocess import preprocess
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from skrvm import RVR
 
 np.random.seed(42)
@@ -25,7 +26,7 @@ def read_data(X_train_path, y_train_path, X_test_path):
     return X_train, y_train, X_test
 
 
-def get_model(method: int = 1):
+def get_model(method: int = 2):
     if method == 1:
         estimators = [
             # ('lr', RidgeCV()),
@@ -50,12 +51,15 @@ def get_model(method: int = 1):
             ('svr_rbf', SVR(kernel='rbf')),
             ('mn', KNeighborsRegressor()),
             ('rvm', RVR(alpha=1e-06)),
-            # ('cat', CatBoostRegressor()),
+            ('cat', CatBoostRegressor()),
             ('gp', GaussianProcessRegressor(kernel=RationalQuadratic(alpha=0.5), random_state=42)),
             ('cubist', cubist.Cubist()),
         ]
         model = StackingRegressor(estimators=estimators,
-                                  final_estimator=RandomForestRegressor(n_estimators=100, random_state=42))
+                                  final_estimator=RidgeCV())
+
+    else:
+        raise Exception(f"Model: {method} is not implemented.")
 
     return model
 
@@ -80,7 +84,7 @@ def main():
 
     print("\nModels and folds.")
 
-    r2 = 0
+    r2, rmse_total = 0, 0
     models = []
     for i, (train_index, test_index) in enumerate(splits):
         model = get_model()
@@ -89,24 +93,38 @@ def main():
         score = r2_score(y_train[test_index], pred)
         r2 += score
 
+        rmse = mean_squared_error(y_train[test_index], pred, squared=False)
+        rmse_total += rmse
+
         models.append(model)
 
-        print(f"Fold {i} R2 score: {score}")
+        print(f"Fold {i} R2 score: {score}, RMSE: {rmse}")
 
-    print(f"\nAvg R2: {r2 / nfolds}")
+    print(f"\nAvg R2: {r2 / nfolds}, RMSE: {rmse_total / nfolds}")
 
     print("\nTrained.")
 
-    from_folds = True
+    from_folds = False
     if from_folds:
         pred = models[0].predict(X_test)
+        pred_train = models[0].predict(X_train)
         for model in models[1:]:
             pred += model.predict(X_test)
+            pred_train += model.predict(X_train)
+
         pred = pred / nfolds
+        pred_train = pred_train / nfolds
+
     else:
         model = get_model()
         model.fit(X_train, y_train)
         pred = model.predict(X_test)
+
+        pred_train = model.predict(X_train)
+
+    rmse_train = mean_squared_error(y_train, pred_train, squared=False)
+    r2_train = r2_score(y_train, pred_train)
+    print(f"\nr2 ov train data (overfit): {r2_train}, RMSE: {rmse_train}")
 
     res = np.column_stack((ids_test, pred))
     np.savetxt("data/out.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')

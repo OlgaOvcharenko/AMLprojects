@@ -42,7 +42,7 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = remove_correlated(X_train, X_test)
 
     # Select k best
-    fs = SelectKBest(score_func=f_regression, k=175)
+    fs = SelectKBest(score_func=f_regression, k=100)
 
     X_train = fs.fit_transform(X_train, y_train.ravel())
     X_test = fs.transform(X_test)
@@ -51,7 +51,7 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
 
 def remove_correlated(X_train: np.array, X_test: np.array):
     # Constant features
-    var_threshold = VarianceThreshold(threshold=0.4)  # TODO threshold = 0 for constant
+    var_threshold = VarianceThreshold(threshold=0.0)  # TODO threshold = 0 for constant
     var_threshold.fit_transform(X_train)
     var_threshold.transform(X_test)
 
@@ -63,7 +63,7 @@ def remove_correlated(X_train: np.array, X_test: np.array):
     return X_train, X_test
 
 
-def scale_data(X_train: np.array, X_test: np.array, method: str = 'min_max'):
+def scale_data(X_train: np.array, X_test: np.array, method: str = 'robust'):
     if method == 'robust':
         transformer = RobustScaler()
     elif method == 'min_max':
@@ -71,8 +71,8 @@ def scale_data(X_train: np.array, X_test: np.array, method: str = 'min_max'):
     else:
         raise Exception(f"Scale: {method} is not implemented")
 
-    transformer.fit_transform(X_train)
-    transformer.transform(X_test)
+    X_train = transformer.fit_transform(X_train)
+    X_test = transformer.transform(X_test)
     return X_train, X_test
 
 
