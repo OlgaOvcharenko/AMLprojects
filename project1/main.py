@@ -51,12 +51,15 @@ def get_model(method: int = 2):
             ('svr_rbf', SVR(C=10, coef0=0.01, degree=3, gamma='scale',kernel='rbf')),  # 0.515443
             # ('mn', KNeighborsRegressor(n_neighbors=15, p=2, weights='distance')),  # 0.441597
             ('rvm', RVR(alpha=1e-06)),
-            # ('cat', CatBoostRegressor(verbose=False)),
+            ('cat', CatBoostRegressor(verbose=False)),
             ('gp', GaussianProcessRegressor(kernel=RationalQuadratic(alpha=0.5), random_state=42)),
-            # ('cubist', cubist.Cubist()),
+            ('cubist', cubist.Cubist()),
         ]
         model = StackingRegressor(estimators=estimators,
                                   final_estimator=RandomForestRegressor(n_estimators=100, random_state=42))
+    elif method == 3:
+        model = XGBRegressor(n_estimators=1000, eta=0.1, colsample_bytree=0.9,
+                                 gamma=0.5, learning_rate=0.1, max_depth=8, min_child_weight=10)
 
     else:
         raise Exception(f"Model: {method} is not implemented.")
@@ -104,7 +107,7 @@ def main():
 
     print("\nTrained.")
 
-    from_folds = True
+    from_folds = False
     if from_folds:
         pred = models[0].predict(X_test)
         pred_train = models[0].predict(X_train)

@@ -1,16 +1,21 @@
 import numpy as np
 import phate
+import umap
 from mlxtend.plotting.pca_correlation_graph import corr2_coeff
 from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import BayesianRidge
-from sklearn.preprocessing import RobustScaler, MinMaxScaler
+from sklearn.preprocessing import RobustScaler, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceThreshold
 from dataheroes import CoresetTreeServiceDTC
+
+import pandas as pd
+pd.DataFrame.iteritems = pd.DataFrame.items
+
 
 def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = impute_mv(X_train, X_test)
@@ -19,13 +24,30 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
     X_train, X_test = select_features(X_train, y_train, X_test)
 
-    # X_train, X_test = reduce_dim(X_train, X_test)
+    # X_train, X_test = reduce_dim(X_train, y_train, X_test)
+    # X_train, X_test = make_polynomial(X_train, y_train, X_test)
+
     return X_train, y_train, X_test
 
 
-def reduce_dim(X_train, X_test, method: str = 'PCA'):
+def make_polynomial(X_train: np.array, y_train: np.array, X_test: np.array, degree: int = 2):
+    if degree > 2:
+        raise Exception("make_polynomial: Insane degree.")
+
+    poly = PolynomialFeatures(2)
+    X_train = poly.fit_transform(X_train, y_train)
+    X_test = poly.transform(X_test)
+
+    print(X_train.shape)
+    return X_train, X_test
+
+
+def reduce_dim(X_train, y_train, X_test, method: str = 'UMAP'):
     if method == 'PCA':
         reducer = PCA(n_components='mle', svd_solver='auto')
+
+    elif method == 'UMAP':
+        reducer = umap.UMAP(n_components=30)
 
     elif method == 'PHATE':
         reducer = phate.PHATE(n_components=30)
@@ -33,7 +55,7 @@ def reduce_dim(X_train, X_test, method: str = 'PCA'):
     else:
         return X_train, X_test
 
-    X_train = reducer.fit_transform(X_train)
+    X_train = reducer.fit_transform(X_train, y_train)
     X_test = reducer.transform(X_test)
     return X_train, X_test
 
@@ -42,7 +64,7 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = remove_correlated(X_train, X_test)
 
     # Select k best
-    fs = SelectKBest(score_func=f_regression, k=100)
+    fs = SelectKBest(score_func=f_regression, k=175)
 
     X_train = fs.fit_transform(X_train, y_train.ravel())
     X_test = fs.transform(X_test)
@@ -63,11 +85,13 @@ def remove_correlated(X_train: np.array, X_test: np.array):
     return X_train, X_test
 
 
-def scale_data(X_train: np.array, X_test: np.array, method: str = 'robust'):
+def scale_data(X_train: np.array, X_test: np.array, method: str = 'min_max'):
     if method == 'robust':
         transformer = RobustScaler()
     elif method == 'min_max':
         transformer = MinMaxScaler()
+    elif method == 'standard':
+        transformer = StandardScaler()
     else:
         raise Exception(f"Scale: {method} is not implemented")
 
@@ -76,7 +100,7 @@ def scale_data(X_train: np.array, X_test: np.array, method: str = 'robust'):
     return X_train, X_test
 
 
-def impute_mv(X_train: np.array, X_test: np.array, method: str = 'mean'):
+def impute_mv(X_train: np.array, X_test: np.array, method: str = 'median'):
     if method == 'median':
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
 
@@ -104,7 +128,7 @@ def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.arra
     return X_train, y_train, X_test
 
 
-def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'isolation_forest'):
+def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'ECOD'):
     train_pred, test_pred = [], []
     if method == 'ECOD':
         ecod = ECOD(contamination=0.05)
@@ -113,7 +137,7 @@ def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'isol
 
     elif method == 'isolation_forest':
         for i in range(X_train.shape[1]):
-            clf = IsolationForest(n_estimators=150, max_samples='auto', contamination=float(0.1))
+            clf = IsolationForest(n_estimators=150, max_samples='auto', contamination=float(0.05))
             y_train_pred = np.array(clf.fit_predict(X_train[:, i].reshape(-1, 1))) == 1
             train_pred.append(y_train_pred)
             # y_test_pred = np.array(clf.predict(X_test[:, i].reshape(-1, 1))) == 1
