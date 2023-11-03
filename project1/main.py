@@ -1,5 +1,4 @@
 import cubist
-import best
 import numpy as np
 from catboost import CatBoostRegressor
 from lightgbm import LGBMRegressor
@@ -44,19 +43,20 @@ def get_model(method: int = 2):
         model = StackingRegressor(estimators=estimators, final_estimator=RandomForestRegressor(n_estimators=100, random_state=42))
     elif method == 2:
         estimators = [
-            ('xgb', XGBRegressor(n_estimators=1000, max_depth=7, eta=0.1, colsample_bytree=0.8)),
+            ('xgb', XGBRegressor(n_estimators=1000, eta=0.1, colsample_bytree=0.9,
+                                 gamma=0.5, learning_rate=0.1, max_depth=8, min_child_weight=10)),  # 0.520819
             ('extratree', ExtraTreesRegressor(n_estimators=1000, random_state=0)),
             ('adaboost', AdaBoostRegressor(n_estimators=1000, random_state=0)),
-            ('lgbm', LGBMRegressor()),
-            ('svr_rbf', SVR(kernel='rbf')),
-            ('mn', KNeighborsRegressor()),
+            ('lgbm', LGBMRegressor(learning_rate=0.01, max_bin=1000, num_iterations=3000, verbose=0)),  # 0.508068
+            ('svr_rbf', SVR(C=10, coef0=0.01, degree=3, gamma='scale',kernel='rbf')),  # 0.515443
+            # ('mn', KNeighborsRegressor(n_neighbors=15, p=2, weights='distance')),  # 0.441597
             ('rvm', RVR(alpha=1e-06)),
-            ('cat', CatBoostRegressor()),
+            # ('cat', CatBoostRegressor(verbose=False)),
             ('gp', GaussianProcessRegressor(kernel=RationalQuadratic(alpha=0.5), random_state=42)),
-            ('cubist', cubist.Cubist()),
+            # ('cubist', cubist.Cubist()),
         ]
         model = StackingRegressor(estimators=estimators,
-                                  final_estimator=RidgeCV())
+                                  final_estimator=RandomForestRegressor(n_estimators=100, random_state=42))
 
     else:
         raise Exception(f"Model: {method} is not implemented.")
@@ -104,7 +104,7 @@ def main():
 
     print("\nTrained.")
 
-    from_folds = False
+    from_folds = True
     if from_folds:
         pred = models[0].predict(X_test)
         pred_train = models[0].predict(X_train)
@@ -142,16 +142,19 @@ def tune_params_cv():
 
     print("\nModels and folds.")
 
-    model = get_model()
-
+    model = XGBRegressor()
+    # n_estimators = 1000, max_depth = 7, eta = 0.1, colsample_bytree = 0.8
     grid = GridSearchCV(
         estimator=model,
         param_grid={
-            'lgbm__max_bin': [1000, 10000, 50000],
-            'lgbm__learning_rate': [0.0001, 0.001],
-            'lgbm_regressor__num_iterations': [1000],
-
+            "learning_rate": (0.01, 0.1, 0.0001, 0.001),
+            "max_depth": [3, 4, 5, 6, 7, 8],
+            "min_child_weight": [1, 3, 5, 7, 10],
+            "gamma": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+            "colsample_bytree": [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
         },
+        n_jobs=-1,
+        verbose=1,
         cv=5,
         refit=True
     )

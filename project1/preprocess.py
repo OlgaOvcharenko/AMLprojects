@@ -10,7 +10,7 @@ from sklearn.preprocessing import RobustScaler, MinMaxScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
 from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceThreshold
-
+from dataheroes import CoresetTreeServiceDTC
 
 def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = impute_mv(X_train, X_test)
@@ -76,9 +76,12 @@ def scale_data(X_train: np.array, X_test: np.array, method: str = 'robust'):
     return X_train, X_test
 
 
-def impute_mv(X_train: np.array, X_test: np.array, method: str = 'median'):
+def impute_mv(X_train: np.array, X_test: np.array, method: str = 'mean'):
     if method == 'median':
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
+
+    elif method == 'mean':
+        imp = SimpleImputer(missing_values=np.nan, strategy='mean')
 
     elif method == 'iterative':
         imp = IterativeImputer(estimator=BayesianRidge(), n_nearest_features=None, imputation_order='ascending')
@@ -93,7 +96,7 @@ def impute_mv(X_train: np.array, X_test: np.array, method: str = 'median'):
 
 
 def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.array):
-    train_pred1 = detect_outlier_obs(X_train, X_test, 'ECOD')
+    train_pred1 = detect_outlier_obs(X_train, y_train, 'coresets')
     # train_pred2 = detect_outlier_obs(X_train, X_test, 'isolation_forest')
     X_train = X_train[train_pred1]
     y_train = y_train[train_pred1]
@@ -101,14 +104,12 @@ def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.arra
     return X_train, y_train, X_test
 
 
-def detect_outlier_obs(X_train: np.array, X_test: np.array, method: str = 'isolation_forest'):
+def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'isolation_forest'):
     train_pred, test_pred = [], []
     if method == 'ECOD':
-        for i in range(X_train.shape[1]):
-            ecod = ECOD(contamination=0.05)
-            ecod.fit(X_train[:, i].reshape(-1, 1))
-            train_pred = np.array(ecod.labels_) == 0
-            # test_pred = np.array(ecod.predict(X_test[:, i].reshape(-1, 1))) == 0
+        ecod = ECOD(contamination=0.05)
+        ecod.fit(X_train)
+        train_pred = np.array(ecod.labels_) == 0
 
     elif method == 'isolation_forest':
         for i in range(X_train.shape[1]):
@@ -120,6 +121,17 @@ def detect_outlier_obs(X_train: np.array, X_test: np.array, method: str = 'isola
 
         train_pred = np.array(train_pred).sum(axis=1)
         # test_pred = np.array(test_pred).sum(axis=1)
+
+    elif method == "coresets":
+        tree = CoresetTreeServiceDTC(optimized_for='cleaning')
+        tree = tree.build(X=X_train, y=y_train, chunk_size=-1)
+        result = tree.get_cleaning_samples(20)
+        tree.remove_samples(result['idx'])
+        res = tree.get_cleaning_samples(1212)
+        # print(res['idx'].shape)
+        # print(res["idx"])
+        train_pred = np.full((X_train.shape[0],), False)
+        train_pred[res["idx"]] = True
 
     else:
         raise Exception(f"Detect: {method} is not implemented")
