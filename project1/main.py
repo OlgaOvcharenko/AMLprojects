@@ -107,7 +107,7 @@ def main():
 
     print("\nTrained.")
 
-    from_folds = False
+    from_folds = True
     if from_folds:
         pred = models[0].predict(X_test)
         pred_train = models[0].predict(X_train)

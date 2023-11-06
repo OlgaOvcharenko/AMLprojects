@@ -6,23 +6,28 @@ from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import BayesianRidge
+from sklearn.linear_model import BayesianRidge, LassoCV
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
-from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceThreshold
+from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceThreshold, RFE
 from dataheroes import CoresetTreeServiceDTC
+from sklearn.linear_model import LinearRegression
+from scipy.stats import f_oneway
 
 import pandas as pd
 pd.DataFrame.iteritems = pd.DataFrame.items
 
 
 def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
-    X_train, X_test = impute_mv(X_train, X_test)
+    X_train, X_test = impute_mv(X_train, X_test, 'median')
     X_train, X_test = scale_data(X_train, X_test)
 
     X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
     X_train, X_test = select_features(X_train, y_train, X_test)
+
+    # X_train, X_test = impute_mv(X_train, X_test)
+    X_train, X_test = scale_data(X_train, X_test, 'robust')
 
     # X_train, X_test = reduce_dim(X_train, y_train, X_test)
     # X_train, X_test = make_polynomial(X_train, y_train, X_test)
@@ -68,6 +73,38 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
 
     X_train = fs.fit_transform(X_train, y_train.ravel())
     X_test = fs.transform(X_test)
+
+    print(X_train.shape)
+
+    X_train, X_test = recursive_elemination(X_train, y_train, X_test)
+    print(X_train.shape)
+
+    return X_train, X_test
+
+
+def recursive_elemination(X_train: np.array, y_train: np.array, X_test: np.array):
+    model = LinearRegression()
+    rfe = RFE(model)
+
+    X_train = rfe.fit_transform(X_train, y_train)
+    X_test = rfe.transform(X_test)
+
+    return X_train, X_test
+
+
+def lasso_selection(X_train: np.array, y_train: np.array, X_test: np.array):
+    reg = LassoCV()
+    reg.fit(X_train, y_train)
+    print("Best alpha using built-in LassoCV: %f" % reg.alpha_)
+    print("Best score using built-in LassoCV: %f" % reg.score(X_train, y_train))
+
+
+def one_way_anova(X_train: np.array, y_train: np.array, X_test: np.array):
+    y_train_bin, _ = np.histogram(y_train)
+    for i in range(X_train.shape[1]):
+        if f_oneway(X_train[:, i], y_train_bin).pvalue > 0.05:
+            print(f_oneway(X_train[:, i], y_train_bin))
+
     return X_train, X_test
 
 
@@ -100,7 +137,7 @@ def scale_data(X_train: np.array, X_test: np.array, method: str = 'min_max'):
     return X_train, X_test
 
 
-def impute_mv(X_train: np.array, X_test: np.array, method: str = 'median'):
+def impute_mv(X_train: np.array, X_test: np.array, method: str = 'iterative'):
     if method == 'median':
         imp = SimpleImputer(missing_values=np.nan, strategy='median')
 
@@ -131,7 +168,7 @@ def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.arra
 def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'ECOD'):
     train_pred, test_pred = [], []
     if method == 'ECOD':
-        ecod = ECOD(contamination=0.05)
+        ecod = ECOD(contamination=0.03)
         ecod.fit(X_train)
         train_pred = np.array(ecod.labels_) == 0
 
