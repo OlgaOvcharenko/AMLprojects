@@ -14,6 +14,8 @@ from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceT
 from dataheroes import CoresetTreeServiceDTC
 from sklearn.linear_model import LinearRegression
 from scipy.stats import f_oneway
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.covariance import EllipticEnvelope
 
 import pandas as pd
 pd.DataFrame.iteritems = pd.DataFrame.items
@@ -23,11 +25,20 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = impute_mv(X_train, X_test, 'median')
     X_train, X_test = scale_data(X_train, X_test)
 
+    print('Scaled and imputed.')
+
     X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
+
+    print('Removed outliers.')
+
     X_train, X_test = select_features(X_train, y_train, X_test)
 
+    print('Selected features.')
+
     # X_train, X_test = impute_mv(X_train, X_test)
-    X_train, X_test = scale_data(X_train, X_test, 'robust')
+    X_train, X_test = scale_data(X_train, X_test, 'standard')
+
+    print('Standardized.')
 
     # X_train, X_test = reduce_dim(X_train, y_train, X_test)
     # X_train, X_test = make_polynomial(X_train, y_train, X_test)
@@ -78,6 +89,9 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
 
     X_train, X_test = recursive_elemination(X_train, y_train, X_test)
     print(X_train.shape)
+
+    # Outliers: LocalOutlierFactor, EllipticEnveope
+    # Feature Sel: Recursive Feature Elimination, Lasso
 
     return X_train, X_test
 
@@ -158,14 +172,20 @@ def impute_mv(X_train: np.array, X_test: np.array, method: str = 'iterative'):
 
 def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.array):
     train_pred1 = detect_outlier_obs(X_train, y_train, 'coresets')
-    # train_pred2 = detect_outlier_obs(X_train, X_test, 'isolation_forest')
-    X_train = X_train[train_pred1]
-    y_train = y_train[train_pred1]
+    train_pred2 = detect_outlier_obs(X_train, X_test, 'ECOD')
+    train_pred3 = detect_outlier_obs(X_train, X_test, 'elliptic')
+    train_pred4 = detect_outlier_obs(X_train, X_test, 'local_factor')
+
+    train_pred = np.array(train_pred1 + train_pred2 + train_pred3 + train_pred4)
+    train_pred = train_pred > 2
+
+    X_train = X_train[train_pred]
+    y_train = y_train[train_pred]
 
     return X_train, y_train, X_test
 
 
-def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'ECOD'):
+def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'elliptic'):
     train_pred, test_pred = [], []
     if method == 'ECOD':
         ecod = ECOD(contamination=0.03)
@@ -193,6 +213,16 @@ def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'ECOD
         # print(res["idx"])
         train_pred = np.full((X_train.shape[0],), False)
         train_pred[res["idx"]] = True
+
+    elif method == "local_factor":
+        lo = LocalOutlierFactor(n_neighbors=2)
+        res = lo.fit_predict(X_train)
+        train_pred = np.array(res) == 0
+
+    elif method == "elliptic":
+        ee = EllipticEnvelope(random_state=42)
+        res = ee.fit_predict(X_train, y_train)
+        train_pred = np.array(res) == 0
 
     else:
         raise Exception(f"Detect: {method} is not implemented")

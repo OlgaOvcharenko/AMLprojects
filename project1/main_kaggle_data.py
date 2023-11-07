@@ -52,7 +52,7 @@ def get_model(method: int = 2):
             # ('mn', KNeighborsRegressor(n_neighbors=15, p=2, weights='distance')),  # 0.441597
             ('rvm', RVR(alpha=1e-06)),
             ('cat', CatBoostRegressor(verbose=False)),
-            ('gp', GaussianProcessRegressor(kernel=RationalQuadratic(alpha=3.5), random_state=42)),
+            ('gp', GaussianProcessRegressor(kernel=RationalQuadratic(alpha=1.8), random_state=42)),
             ('cubist', cubist.Cubist()),
         ]
         model = StackingRegressor(estimators=estimators,
@@ -73,12 +73,11 @@ def get_splits(X_train: np.array, nfolds: int = 10):
 
 
 def main():
-    X_train, y_train, X_test = read_data(X_train_path="data/X_train.csv",
-                                         y_train_path="data/y_train.csv",
-                                         X_test_path="data/X_test.csv")
-    ids_train, ids_test = X_train[1:, 0], X_test[1:, 0].astype(int)
-    X_train, y_train, X_test = X_train[1:, 1:], y_train[1:, 1:].ravel(), X_test[1:, 1:]
-    X_train, y_train, X_test = preprocess(X_train, y_train, X_test)
+    X_train, y_train, X_test = read_data(X_train_path="data/X_train_preprocessed_median_isolation_forest_correlation_min_max_UMAP.csv",
+                                         y_train_path="data/y_train_preprocessed_median_isolation_forest_correlation_min_max_UMAP.csv",
+                                         X_test_path="data/X_test_preprocessed_median_isolation_forest_correlation_min_max_UMAP.csv")
+
+    X_train, y_train, X_test = X_train, y_train.ravel(), X_test
 
     print("Preprocessed.")
 
@@ -107,7 +106,8 @@ def main():
 
     print("\nTrained.")
 
-    from_folds = True
+    from_folds = False
+
     if from_folds:
         pred = models[0].predict(X_test)
         pred_train = models[0].predict(X_train)
