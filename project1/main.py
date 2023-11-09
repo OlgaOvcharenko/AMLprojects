@@ -1,3 +1,5 @@
+import math
+
 import cubist
 import numpy as np
 from catboost import CatBoostRegressor
@@ -107,8 +109,16 @@ def main():
 
     print("\nTrained.")
 
-    from_folds = True
-    if from_folds:
+    best_model = True
+    from_folds = False
+
+    if best_model:
+        best = np.argmax(np.array(r2))
+        model = models[best]
+        pred = model.predict(X_test)
+        pred_train = model.predict(X_train)
+
+    elif from_folds:
         pred = models[0].predict(X_test)
         pred_train = models[0].predict(X_train)
         for model in models[1:]:
@@ -130,7 +140,7 @@ def main():
     print(f"\nr2 ov train data (overfit): {r2_train}, RMSE: {rmse_train}")
 
     res = np.column_stack((ids_test, pred))
-    np.savetxt("data/out.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')
+    np.savetxt("data/out_rec.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')
 
 
 def tune_params_cv():
