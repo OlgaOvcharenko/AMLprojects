@@ -40,8 +40,13 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
 
     print('Standardized.')
 
-    # X_train, X_test = reduce_dim(X_train, y_train, X_test)
+    train_red, test_red = reduce_dim(X_train, y_train, X_test)
     # X_train, X_test = make_polynomial(X_train, y_train, X_test)
+
+    print(train_red)
+
+    X_train = np.hstack([X_train, train_red])
+    X_test = np.hstack([X_test, test_red])
 
     return X_train, y_train, X_test
 
@@ -63,7 +68,7 @@ def reduce_dim(X_train, y_train, X_test, method: str = 'UMAP'):
         reducer = PCA(n_components='mle', svd_solver='auto')
 
     elif method == 'UMAP':
-        reducer = umap.UMAP(n_components=30)
+        reducer = umap.UMAP(n_components=2)
 
     elif method == 'PHATE':
         reducer = phate.PHATE(n_components=30)
@@ -80,18 +85,15 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = remove_correlated(X_train, X_test)
 
     # Select k best
-    fs = SelectKBest(score_func=f_regression, k=175)
+    fs = SelectKBest(score_func=f_regression, k=30)
 
     X_train = fs.fit_transform(X_train, y_train.ravel())
     X_test = fs.transform(X_test)
 
     print(X_train.shape)
 
-    X_train, X_test = recursive_elemination(X_train, y_train, X_test)
-    print(X_train.shape)
-
-    # Outliers: LocalOutlierFactor, EllipticEnveope
-    # Feature Sel: Recursive Feature Elimination, Lasso
+    # X_train, X_test = recursive_elemination(X_train, y_train, X_test)
+    # print(X_train.shape)
 
     return X_train, X_test
 
@@ -176,10 +178,12 @@ def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.arra
     train_pred3 = detect_outlier_obs(X_train, X_test, 'elliptic')
     train_pred4 = detect_outlier_obs(X_train, X_test, 'local_factor')
 
-    train_pred = np.array(train_pred1 + train_pred2 + train_pred3 + train_pred4)
-    train_pred = train_pred > 2
+    train_pred = train_pred1 + train_pred2 + train_pred3 + train_pred4
+    train_pred = train_pred > 1
 
+    print(X_train.shape)
     X_train = X_train[train_pred]
+    print(X_train.shape)
     y_train = y_train[train_pred]
 
     return X_train, y_train, X_test
@@ -227,4 +231,4 @@ def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'elli
     else:
         raise Exception(f"Detect: {method} is not implemented")
 
-    return train_pred
+    return train_pred.astype(int)
