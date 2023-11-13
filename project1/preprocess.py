@@ -1,12 +1,13 @@
 import numpy as np
 import phate
 import umap
+from matplotlib import pyplot as plt
 from mlxtend.plotting.pca_correlation_graph import corr2_coeff
 from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import BayesianRidge, LassoCV
+from sklearn.linear_model import BayesianRidge, LassoCV, Lasso
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
@@ -41,11 +42,13 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     print('Standardized.')
 
     train_red, test_red = reduce_dim(X_train, y_train, X_test)
-    train_red, test_red = scale_data(train_red, test_red, 'standard')
+    train_red, test_red = scale_data(train_red, test_red, 'robust')
+    print(train_red)
 
     X_train = np.hstack([X_train, train_red])
     X_test = np.hstack([X_test, test_red])
 
+    print(X_train.shape)
     return X_train, y_train, X_test
 
 
@@ -69,29 +72,32 @@ def reduce_dim(X_train, y_train, X_test, method: str = 'UMAP'):
         reducer = umap.UMAP(n_components=4)
 
     elif method == 'PHATE':
-        reducer = phate.PHATE(n_components=30)
+        reducer = phate.PHATE(n_components=4)
 
     else:
         return X_train, X_test
 
     X_train = reducer.fit_transform(X_train, y_train)
     X_test = reducer.transform(X_test)
+
+    print(X_train.shape)
+
     return X_train, X_test
 
 
 def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     X_train, X_test = remove_correlated(X_train, X_test)
 
+    # X_train, X_test = lasso_selection(X_train, y_train, X_test)
+
     # Select k best
-    # fs = SelectKBest(score_func=f_regression, k=200)
-    #
-    # X_train = fs.fit_transform(X_train, y_train.ravel())
-    # X_test = fs.transform(X_test)
+    fs = SelectKBest(score_func=f_regression, k=200)
 
-    print(X_train.shape)
+    X_train = fs.fit_transform(X_train, y_train.ravel())
+    X_test = fs.transform(X_test)
 
-    X_train, X_test = recursive_elemination(X_train, y_train, X_test)
-    print(X_train.shape)
+    # X_train, X_test = recursive_elemination(X_train, y_train, X_test)
+    # print(X_train.shape)
 
     return X_train, X_test
 
@@ -107,10 +113,15 @@ def recursive_elemination(X_train: np.array, y_train: np.array, X_test: np.array
 
 
 def lasso_selection(X_train: np.array, y_train: np.array, X_test: np.array):
-    reg = LassoCV()
-    reg.fit(X_train, y_train)
-    print("Best alpha using built-in LassoCV: %f" % reg.alpha_)
-    print("Best score using built-in LassoCV: %f" % reg.score(X_train, y_train))
+    lasso1 = Lasso(alpha=0.00001)
+    lasso1.fit(X_train, y_train)
+
+    lasso1_coef = np.abs(lasso1.coef_)
+
+    feature_subset = np.array(list(range(X_train.shape[1])))[lasso1_coef > 7]
+    X_train = X_train[:, feature_subset]
+    X_test = X_test[:, feature_subset]
+    return X_train, X_test
 
 
 def one_way_anova(X_train: np.array, y_train: np.array, X_test: np.array):
@@ -196,7 +207,7 @@ def detect_outlier_obs(X_train: np.array, y_train: np.array, method: str = 'elli
 
     elif method == 'isolation_forest':
         for i in range(X_train.shape[1]):
-            clf = IsolationForest(n_estimators=150, max_samples='auto', contamination=float(0.05))
+            clf = IsolationForest(n_estimators=150, max_samples='auto', contamination=float(0.03))
             y_train_pred = np.array(clf.fit_predict(X_train[:, i].reshape(-1, 1))) == 1
             train_pred.append(y_train_pred)
             # y_test_pred = np.array(clf.predict(X_test[:, i].reshape(-1, 1))) == 1

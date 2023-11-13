@@ -1,0 +1,13 @@
+No recursive std all together
+zsh: command not found: No
+(base) ➜  project1 git:(oo_task1) ✗ python3.11 main.py
+Scaled and imputed.
+(1212, 832)
+(1158, 832)
+Removed outliers.
+(1158, 200)
+Selected features.
+Standardized.
+Preprocessed.
+
+Models and folds.

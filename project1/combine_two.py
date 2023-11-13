@@ -23,16 +23,25 @@ def read_data(X):
 
 
 def main():
-    X1 = read_data(X="data/out_median_isolation_forest_correlation_min_max_UMAP.csv")
-    X2 = read_data(X="data/out_best.csv")
+    X1 = read_data(X="data_out/out_64.csv")
+    X2 = read_data(X="data_out/out_best.csv")
+    X3 = read_data(X="data_out/out_31.csv")
+    # X4 = read_data(X="data_out/out_diff_classifier.csv")
     ids = X1[1:, 0]
 
-    pred = (X1[1:, 1] + X2[1:, 1]) / 2
+    sum = 0.724507569893 + 0.736650544556 + 0.714748091135 # + 0.712364259615
+
+    w1 = 0.724507569893 / sum
+    w2 = 0.736650544556 / sum
+    w3 = 0.714748091135 / sum
+    w4 = 0.712364259615 / sum
+    pred = (w1*X1[1:, 1] + w2*X2[1:, 1] + w3*X3[1:, 1])
+
     print(pred.shape)
     print(ids.shape)
 
     res = np.column_stack((ids, pred))
-    np.savetxt("data/out_combined.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')
+    np.savetxt("data_out/out_combined.csv", res, fmt=['%1i', '%1.4f'], delimiter=",", header="id,y", comments='')
 
 
 if __name__ == "__main__":
