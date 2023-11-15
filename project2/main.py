@@ -38,7 +38,7 @@ def get_model(method: int = 2):
 
 
 def main():
-    extract_data = False
+    extract_data = True
 
     # read data
     if extract_data:
@@ -72,7 +72,7 @@ def main():
 
     model = get_model()
     models = []
-    f1_scores = []
+    f1_scores = 0
     for i, (train_index, test_index) in enumerate(splits):
         model = get_model()
         model.fit(X_train[train_index], y_train[train_index])
@@ -80,8 +80,11 @@ def main():
         pred = model.predict(X_train[test_index])
 
         score = f1_score(y_train[test_index], pred, average="micro")
+
+        print(f"Fold {i}: score {score}")
         f1_scores += score
 
+    print(f"Avg F1: {f1_scores / nfolds}")
 
     model_full = get_model()
     model_full.fit(X_train,y_train)

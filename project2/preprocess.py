@@ -27,7 +27,7 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
     X_test.replace(np.inf,np.nan,inplace=True)
 
     X_train, X_test = impute_mv(X_train, X_test, 'median')
-    X_train, X_test = scale_data(X_train, X_test, 'standard')
+    # X_train, X_test = scale_data(X_train, X_test, 'standard')
     # X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
     # X_train, X_test = select_features(X_train, y_train, X_test)
 
