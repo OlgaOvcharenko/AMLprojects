@@ -7,7 +7,7 @@ from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import BayesianRidge, LassoCV, Lasso
+from sklearn.linear_model import BayesianRidge, LassoCV, Lasso, LogisticRegression
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
@@ -22,18 +22,20 @@ import pandas as pd
 pd.DataFrame.iteritems = pd.DataFrame.items
 
 
-def preprocess(X_train: np.array, y_train: np.array, X_test: np.array):
+def preprocess(X_train: np.array, y_train: np.array, X_test: np.array, drop_r: bool):
+    if drop_r:
+        X_train.drop([f"r{r}" for r in range(0, 160)], axis=1, inplace=True)
+
+    X_train.dropna(axis=1, how='all', inplace=True)
+    X_test = X_test[X_train.columns]
+
     X_train.replace(np.inf,np.nan,inplace=True)
     X_test.replace(np.inf,np.nan,inplace=True)
 
     X_train, X_test = impute_mv(X_train, X_test, 'median')
+    X_train, X_test = select_features(X_train, y_train, X_test)
     X_train, X_test = scale_data(X_train, X_test, 'standard')
-    # X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
-    # X_train, X_test = select_features(X_train, y_train, X_test)
 
-    print('Selected features.')
-
-    # X_train, X_test = impute_mv(X_train, X_test)
     return X_train, y_train, X_test
 
 
@@ -50,17 +52,20 @@ def make_polynomial(X_train: np.array, y_train: np.array, X_test: np.array, degr
 
 
 def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
+    print(X_train.shape)
     X_train, X_test = remove_correlated(X_train, X_test)
 
-    fs = SelectKBest(score_func=f_regression, k=200)
-    X_train = fs.fit_transform(X_train, y_train.ravel())
-    X_test = fs.transform(X_test)
+    # fs = SelectKBest(score_func=f_regression, k=200)
+    # X_train = fs.fit_transform(X_train, y_train.ravel())
+    # X_test = fs.transform(X_test)
+    # X_train, X_test = recursive_elemination(X_train, y_train, X_test)
 
+    print(X_train.shape)
     return X_train, X_test
 
 
 def recursive_elemination(X_train: np.array, y_train: np.array, X_test: np.array):
-    model = LinearRegression()
+    model = LogisticRegression()
     rfe = RFE(model)
 
     X_train = rfe.fit_transform(X_train, y_train)

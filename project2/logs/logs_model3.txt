@@ -1,0 +1,9 @@
+Extracted / read data.
+Selected features.
+Preprocessed.
+Fold 0: score 0.78515625
+Fold 1: score 0.7919921875
+Fold 2: score 0.7820136852394917
+Fold 3: score 0.8015640273704789
+Fold 4: score 0.7986314760508308
+Avg F1: 0.7918715252321604

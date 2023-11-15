@@ -8,6 +8,8 @@ from sklearn.metrics import f1_score
 from tqdm import tqdm
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+import lightgbm as lgb
 
 
 def read_data(X_train_path, y_train_path, X_test_path, extract_data):  
@@ -29,11 +31,22 @@ def get_splits(X_train: np.array, y_train: np.array, nfolds: int = 10):
     return kf.split(X_train, y_train)
 
 
-def get_model(method: int = 2):
+def get_model(method: int = 3):
     if method == 1:
         model = XGBClassifier()
+
     elif method == 2:
         model = CatBoostClassifier(iterations=1000, learning_rate=0.01, logging_level='Silent')
+
+    elif method == 3:
+        estimators = [ 
+            ('cb', CatBoostClassifier(iterations=1000, learning_rate=0.01, logging_level='Silent')),
+            ('xgb', XGBClassifier(random_state=42)),
+            # ('lgbm', lgb.LGBMClassifier(random_state=42))
+        ]
+    
+        model = StackingClassifier(estimators=estimators, final_estimator=CatBoostClassifier(iterations=1000, learning_rate=0.01, logging_level='Silent'))
+    
     return model
 
 
@@ -63,7 +76,7 @@ def main():
     
     print("Extracted / read data.")
 
-    X_train, y_train, X_test = preprocess(X_train, y_train, X_test)
+    X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=False)
 
     print("Preprocessed.")
     
@@ -71,8 +84,7 @@ def main():
     splits = get_splits(X_train, y_train, nfolds)
 
     model = get_model()
-    models = []
-    f1_scores = []
+    f1_scores = 0
     for i, (train_index, test_index) in enumerate(splits):
         model = get_model()
         model.fit(X_train[train_index], y_train[train_index])
@@ -80,8 +92,11 @@ def main():
         pred = model.predict(X_train[test_index])
 
         score = f1_score(y_train[test_index], pred, average="micro")
+
+        print(f"Fold {i}: score {score}")
         f1_scores += score
 
+    print(f"Avg F1: {f1_scores / nfolds}")
 
     model_full = get_model()
     model_full.fit(X_train,y_train)
