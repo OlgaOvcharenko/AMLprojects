@@ -168,3 +168,11 @@ project1/old/
 project1/data/
 
 project1/catboost_info
+
+__pycache__
+catboost_info
+data/
+
+.DS_Store
+
+
