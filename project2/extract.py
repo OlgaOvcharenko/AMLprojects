@@ -18,13 +18,11 @@ from tqdm import tqdm
 class Extractor:
     def __init__(self, x):
         self.X = x
-        self.cols = ["skew_rr", "kurtosis_rr", "skew_r", "kurtosis_r", "skew_q", "kurtosis_q",
-                     "skew_qrs", "kurtosis_qrs", "HRV_IQRNN", "HRV_HTI", "HRV_pNN50"]
         
     def extract(self):
         vals = []
         for index in tqdm(range(0, self.X.shape[0])):
-            row = self.X.loc[index, :].values.flatten().tolist()
+            row = self.X.loc[index, :]
             res = self._extract_one(row)
             vals.append(res)
 
@@ -40,7 +38,7 @@ class Extractor:
         cleaned_ecg = hp.remove_baseline_wander(cleaned_ecg, 300)
         cleaned_ecg = nk.signal_detrend(cleaned_ecg)
 
-        rpeaks = biosppy.signals.ecg.ssf_segmenter(cleaned_ecg, 300)
+        rpeaks = biosppy.signals.ecg.hamilton_segmenter(cleaned_ecg, 300)
         rpeaks = biosppy.signals.ecg.correct_rpeaks(cleaned_ecg, rpeaks[0], 300.0)[0]
 
         r_vals = [cleaned_ecg[r] for r in rpeaks if not np.isnan(r)]
@@ -48,7 +46,7 @@ class Extractor:
             cur_row[f"r{i}"] = val
 
         # Delineate the ECG signal
-        _, waves_dwt = nk.ecg_delineate(cleaned_ecg, rpeaks, sampling_rate=300, method="dwt")
+        _, waves_dwt = nk.ecg_delineate(cleaned_ecg, sampling_rate=300, method="dwt")
         p_onsets = waves_dwt["ECG_P_Onsets"]
         p_offsets = waves_dwt["ECG_P_Offsets"]
         p_peaks = waves_dwt["ECG_P_Peaks"]
@@ -79,11 +77,11 @@ class Extractor:
         #r_amplitude
         r_amplitude = cleaned_ecg[rpeaks]
 
-        # cur_row["mean_r"] = np.nanmean(r_amplitude)
-        # cur_row["median_r"] = np.nanmedian(r_amplitude)
-        # cur_row["var_r"] = np.nanvar(r_amplitude)
-        # cur_row["max_r"] = np.nanmax(r_amplitude)
-        # cur_row["min_r"] = np.nanmin(r_amplitude)
+        cur_row["mean_r"] = np.nanmean(r_amplitude)
+        cur_row["median_r"] = np.nanmedian(r_amplitude)
+        cur_row["var_r"] = np.nanvar(r_amplitude)
+        cur_row["max_r"] = np.nanmax(r_amplitude)
+        cur_row["min_r"] = np.nanmin(r_amplitude)
 
         cur_row["skew_r"] = skew(r_amplitude)
         cur_row["kurtosis_r"] = kurtosis(r_amplitude)
@@ -91,7 +89,7 @@ class Extractor:
         # q_amplitude
         q_amplitude = q_peaks
         cur_row["mean_q"] = np.nanmean(q_amplitude)
-        # cur_row["median_q"] = np.nanmedian(q_amplitude)
+        cur_row["median_q"] = np.nanmedian(q_amplitude)
         cur_row["var_q"] = np.nanvar(q_amplitude)
         cur_row["max_q"] = np.nanmax(q_amplitude)
         cur_row["min_q"] = np.nanmin(q_amplitude)
@@ -101,7 +99,7 @@ class Extractor:
         # t_amplitude
         t_amplitude = t_peaks
         cur_row["mean_q"] = np.nanmean(t_amplitude)
-        # cur_row["median_q"] = np.nanmedian(q_amplitude)
+        cur_row["median_q"] = np.nanmedian(t_amplitude)
         cur_row["var_t"] = np.nanvar(t_amplitude)
         cur_row["max_t"] = np.nanmax(t_amplitude)
         cur_row["min_t"] = np.nanmin(t_amplitude)
@@ -111,7 +109,7 @@ class Extractor:
         # s_amplitude
         s_amplitude = s_peaks
         cur_row["mean_q"] = np.nanmean(s_amplitude)
-        # cur_row["median_q"] = np.nanmedian(q_amplitude)
+        cur_row["median_q"] = np.nanmedian(s_amplitude)
         cur_row["var_s"] = np.nanvar(s_amplitude)
         cur_row["max_s"] = np.nanmax(s_amplitude)
         cur_row["min_s"] = np.nanmin(s_amplitude)
@@ -120,11 +118,11 @@ class Extractor:
 
         #qrs_duration
         qrs_duration = [(b - a) for a, b in zip(r_onsets, r_offsets)]
-        # cur_row["mean_qrs"] = np.nanmean(qrs_duration)
-        # cur_row["median_qrs"] = np.nanmedian(qrs_duration)
-        # cur_row["var_qrs"] = np.nanvar(qrs_duration)
-        # cur_row["max_qrs"] = np.nanmax(qrs_duration)
-        # cur_row["min_qrs"] = np.nanmin(qrs_duration)
+        cur_row["mean_qrs"] = np.nanmean(qrs_duration)
+        cur_row["median_qrs"] = np.nanmedian(qrs_duration)
+        cur_row["var_qrs"] = np.nanvar(qrs_duration)
+        cur_row["max_qrs"] = np.nanmax(qrs_duration)
+        cur_row["min_qrs"] = np.nanmin(qrs_duration)
         cur_row["skew_qrs"] = skew(qrs_duration)
         cur_row["kurtosis_qrs"] = kurtosis(qrs_duration)
 
