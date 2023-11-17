@@ -9,7 +9,6 @@ import pyhrv.tools as tools
 from pyhrv.hrv import hrv
 import neurokit2 as nk
 import numpy as np
-import statsmodels.api as sm
 from scipy.signal.signaltools import wiener
 import biosppy
 from tqdm import tqdm
