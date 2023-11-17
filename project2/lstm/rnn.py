@@ -106,7 +106,7 @@ def predict(X_test, n_epochs: int = 20,
     nsamples, n_features = X_test.shape[0], X_test.shape[1]
 
     rnn = RNN()
-    rnn.load_state_dict(torch.load('Trained_models/rnn_model_weights.pth'))
+    rnn.load_state_dict(torch.load('models/rnn_model_weights.pth'))
     rnn.eval()
 
     X_test = torch.tensor([X_test], dtype=torch.float32)
@@ -165,4 +165,4 @@ def train_rnn(X_train, y_train, n_epochs: int = 20,
                 print('Iter / Epoch / Num epochs: {:03d}/{}/{}.............'.format(iteration, epoch, n_epochs), end=' ')
                 print("Loss: {:.4f} Acc: {:.5f}".format(loss.item(), accuracy_score(y_val, preds)))
 
-    torch.save(rnn.state_dict(), 'Trained_models/rnn_model_weights.pth')
+    torch.save(rnn.state_dict(), 'models/rnn_model_weights.pth')

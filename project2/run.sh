@@ -8,6 +8,7 @@
 
 mkdir -p logs
 mkdir -p results
+mkdir -p models
 
 module load python
 
