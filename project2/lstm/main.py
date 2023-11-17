@@ -106,12 +106,16 @@ def main_nn():
                                                                    X_test='./data/X_test.csv',
                                                                    read_train=read_train,
                                                                    read_test=read_test)
+    print("Read data.")
 
     # TODO not equal length of observations, how to handle tails
     if read_train:
+        print("Preprocessing.")
         X_train = replace_nan(X_train, slice_by_avg_len=False)
         X_val = replace_nan(X_val, slice_by_avg_len=False)
 
+        print("Training.")
+        
         rnn.train_rnn(X_train, y_train)
         predictions = rnn.predict(X_val)
 
