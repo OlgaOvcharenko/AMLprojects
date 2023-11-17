@@ -7,6 +7,7 @@
 #SBATCH --time=23:00:00
 
 mkdir -p logs
+mkdir -p results
 
 module load python
 

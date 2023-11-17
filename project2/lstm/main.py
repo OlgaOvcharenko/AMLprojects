@@ -91,7 +91,7 @@ def main_svm():
         # Save output
         res = {'id': X_test_ind, 'y': predictions}
         df = pd.DataFrame(res)
-        df.to_csv('Results/out.csv', index=False)
+        df.to_csv('results/out_lstm.csv', index=False)
 
 
 def main_nn():
@@ -127,7 +127,7 @@ def main_nn():
         print(len(predictions))
 
         df = pd.DataFrame(res)
-        df.to_csv('Results/out.csv', index=False)
+        df.to_csv('results/out_lstm.csv', index=False)
 
 
 if __name__ == "__main__":
