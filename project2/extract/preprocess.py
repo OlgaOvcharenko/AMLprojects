@@ -7,14 +7,12 @@ from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import BayesianRidge, LassoCV, Lasso, LogisticRegression
+from sklearn.linear_model import BayesianRidge, LogisticRegression
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
-from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceThreshold, RFE
+from sklearn.feature_selection import VarianceThreshold, RFE
 from dataheroes import CoresetTreeServiceDTC
-from sklearn.linear_model import LinearRegression
-from scipy.stats import f_oneway
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 

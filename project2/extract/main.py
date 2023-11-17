@@ -8,7 +8,7 @@ from sklearn.metrics import f1_score
 from tqdm import tqdm
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
-from sklearn.ensemble import RandomForestClassifier, StackingClassifier
+from sklearn.ensemble import StackingClassifier
 import lightgbm as lgb
 
 
@@ -21,7 +21,8 @@ def read_data(X_train_path, y_train_path, X_test_path, extract_data):
         train_ids, test_ids = X_train.iloc[:, 0], X_test.iloc[:, 0]
         X_train, X_test = X_train.iloc[:,1:], X_test.iloc[:,1:]
     else:
-        train_ids, test_ids = pd.DataFrame(list(range(0, X_train.shape[0]))), pd.DataFrame(list(range(0, X_test.shape[0])))
+        train_ids, test_ids = pd.DataFrame(list(range(0, X_train.shape[0]))), \
+            pd.DataFrame(list(range(0, X_test.shape[0])))
 
     return X_train, y_train, train_ids, X_test, test_ids
 
