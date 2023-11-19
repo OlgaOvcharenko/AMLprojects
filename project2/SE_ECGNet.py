@@ -293,13 +293,14 @@ class SE_ECGNet(ECGNet):
     def __init__(self, struct=[(1, 3), (1, 5), (1, 7)], num_classes=34):
         super(ECGNet, self).__init__()
         self.struct = struct
-        self.conv = nn.Conv2d(in_channels=1, out_channels=32, kernel_size=(1, 50), stride=(1, 2), padding=(0, 0),
+        #edited originally in::1, out 32
+        self.conv = nn.Conv1d(in_channels=17807, out_channels=256, kernel_size=(1, 50), stride=(1, 2), padding=(0, 0),
                               bias=False)
         self.relu = nn.ReLU(inplace=True)
         self.bn = nn.BatchNorm2d(32)
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(in_features=256 * len(struct), out_features=num_classes)
-        self.block1 = self._make_layer(in_channels=32, out_channels=32, kernel_size=(1, 15), stride=(1, 2),
+        self.block1 = self._make_layer(in_channels=256, out_channels=64, kernel_size=(1, 15), stride=(1, 2),
                                        block=ResBlock2d, blocks=3, padding=(0, 7))
 
         self.block2_list = nn.ModuleList()
@@ -323,7 +324,7 @@ class SE_ECGNet(ECGNet):
             downsample = nn.Sequential(
                 nn.BatchNorm2d(num_features=out_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=(1, 1), stride=(1, 2),
+                nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=(1, 1), stride=(1, 2),
                           padding=(0, 0))
             )
         if block == ResBlock1d:
@@ -342,7 +343,7 @@ class SE_ECGNet(ECGNet):
 
 
     def forward(self, x, info=None):
-        out = x.unsqueeze(1)
+        out = x
         out = self.conv(out)  # x => [b, 32, 8, 2476]
         out = self.bn(out)
         out = self.relu(out)
@@ -367,12 +368,36 @@ class SE_ECGNet(ECGNet):
 
 
 
+def resample(sig, target_point_num=None):
+    '''
+    resample the original signal
+    :param sig: original signal
+    :param target_point_num
+    :return: resampled signal
+    '''
+    from scipy import signal
+    sig = signal.resample(sig, target_point_num) if target_point_num else sig
+    return sig
 
+
+def transform(sig, train=False):
+    '''
+    resample the original signal
+    :param sig: original signal
+    :return: resampled signal in tensor form
+    '''
+    sig = resample(sig, 2048)
+    sig = sig.transpose()
+    sig = torch.tensor(sig.copy(), dtype=torch.float)
+    return sig
 if __name__ == '__main__':
+    X_train,y_train,train_ids,X_test,test_ids=read_data('task2_data/X_train.csv','task2_data/y_train.csv','task2_data/X_test.csv',True)
+    print(X_train)
+    X_train = torch.tensor(X_train.values)
     input = torch.randn(16, 8, 5000)
     info = torch.randn(16, 2)
     SE_ECGNet = SE_ECGNet()
-    output = SE_ECGNet(input)
+    output = SE_ECGNet(X_train)
     print(output.shape)
 
 
