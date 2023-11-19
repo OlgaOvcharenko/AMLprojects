@@ -130,7 +130,7 @@ def predict(X_test, n_epochs: int = 20,
     return predictions
 
 
-def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=5):
+def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=20):
     batch_size = 128
     data_loader = get_all_data(X_train, y_train, batch_size)
 
@@ -155,14 +155,18 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=5):
             optimizer.step()
 
             if iteration % print_iter == 0:
-                with torch.no_grad() and model.eval():
+                with torch.no_grad():
+                    model.eval()
+                   
                     _, pred = torch.max(output.data, 1)
                     preds = pred.cpu().numpy()
                     y_val = batch_y.cpu().numpy()
                     print('Iter / Epoch / Num epochs: {:03d}/{}/{}....'.format(iteration, epoch, n_epochs), end=' ')
                     print("Loss: {:.4f} F1 {:.5f}".format(loss.item(), f1_score(y_val, preds, average='micro')))
-            
-                    scheduler.step()
-                model.train(True)
+                    
+                    model.train(True)
+                    
+        scheduler.step()
+                
 
     torch.save(model.state_dict(), 'models/rnn_model_weights.pth')
