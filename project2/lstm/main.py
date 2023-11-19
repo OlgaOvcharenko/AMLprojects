@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 
 import rnn as rnn
 import classifiers as SVM
@@ -108,11 +108,16 @@ def main_nn():
                                                                    read_test=read_test)
     print("Read data.")
 
+    mm = MinMaxScaler()
+
     # TODO not equal length of observations, how to handle tails
     if read_train:
         print("Preprocessing.")
         X_train = replace_nan(X_train, slice_by_avg_len=False)
         X_val = replace_nan(X_val, slice_by_avg_len=False)
+
+        X_train = mm.fit_transform(X_train)
+        X_val = mm.transform(X_train)
 
         print("Training.")
         
@@ -123,6 +128,8 @@ def main_nn():
 
     if read_test:
         X_test = replace_nan(X_test, slice_by_avg_len=False)
+        X_test = mm.transform(X_test) if read_train else mm.fit_transform(X_test)
+
         predictions = rnn.predict(X_test)
 
         # Save output

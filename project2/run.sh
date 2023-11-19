@@ -16,4 +16,4 @@ nvidia-smi
 
 source "python_venv/bin/activate"
 
-python3 lstm/main.py
+python lstm/main.py

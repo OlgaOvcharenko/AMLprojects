@@ -138,7 +138,7 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=5):
     rnn = rnn.to(device)
 
     criterion = nn.CrossEntropyLoss()
-    lr = 0.01
+    lr = 0.001
     optimizer = torch.optim.Adam(rnn.parameters(), lr=lr)
     
     rnn.train(True)
@@ -147,6 +147,8 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=5):
         for iteration, (batch_x, batch_y) in enumerate(data_loader):
             batch_x = batch_x.to(device)
             batch_y = torch.flatten(batch_y).long().to(device)
+
+            print(batch_y)
 
             optimizer.zero_grad()
             output = rnn(batch_x)
