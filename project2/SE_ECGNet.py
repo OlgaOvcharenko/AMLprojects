@@ -390,6 +390,20 @@ def transform(sig, train=False):
     sig = sig.transpose()
     sig = torch.tensor(sig.copy(), dtype=torch.float)
     return sig
+
+def read_data(X_train_path, y_train_path, X_test_path, extract_data):
+    import pandas as pd
+    X_train = pd.read_csv(X_train_path)
+    X_test = pd.read_csv(X_test_path)
+    y_train = pd.read_csv(y_train_path).iloc[:,1]
+
+    if extract_data:
+        train_ids, test_ids = X_train.iloc[:, 0], X_test.iloc[:, 0]
+        X_train, X_test = X_train.iloc[:,1:], X_test.iloc[:,1:]
+    else:
+        train_ids, test_ids = pd.DataFrame(list(range(0, X_train.shape[0]))), pd.DataFrame(list(range(0, X_test.shape[0])))
+
+    return X_train, y_train, train_ids, X_test, test_ids
 if __name__ == '__main__':
     X_train,y_train,train_ids,X_test,test_ids=read_data('task2_data/X_train.csv','task2_data/y_train.csv','task2_data/X_test.csv',True)
     print(X_train)
