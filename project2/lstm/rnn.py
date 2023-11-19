@@ -134,14 +134,14 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=5):
     batch_size = 128
     data_loader = get_all_data(X_train, y_train, batch_size)
 
-    rnn = RNN()
-    rnn = rnn.to(device)
+    model = RNN().to(device)
 
     criterion = nn.CrossEntropyLoss()
     lr = 0.01
-    optimizer = torch.optim.Adam(rnn.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs, eta_min=5e-6)
     
-    rnn.train(True)
+    model.train(True)
 
     for epoch in range(n_epochs):
         for iteration, (batch_x, batch_y) in enumerate(data_loader):
@@ -149,17 +149,20 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=5):
             batch_y = torch.flatten(batch_y).long().to(device)
 
             optimizer.zero_grad()
-            output = rnn(batch_x)
+            output = model(batch_x)
             loss = criterion(output, batch_y)
             loss.backward()
             optimizer.step()
 
             if iteration % print_iter == 0:
-                rnn.eval()
-                _, pred = torch.max(output.data, 1)
-                preds = pred.cpu().numpy()
-                y_val = batch_y.cpu().numpy()
-                print('Iter / Epoch / Num epochs: {:03d}/{}/{}....'.format(iteration, epoch, n_epochs), end=' ')
-                print("Loss: {:.4f} F1 {:.5f}".format(loss.item(), f1_score(y_val, preds, average='micro')))
+                with torch.no_grad() and model.eval():
+                    _, pred = torch.max(output.data, 1)
+                    preds = pred.cpu().numpy()
+                    y_val = batch_y.cpu().numpy()
+                    print('Iter / Epoch / Num epochs: {:03d}/{}/{}....'.format(iteration, epoch, n_epochs), end=' ')
+                    print("Loss: {:.4f} F1 {:.5f}".format(loss.item(), f1_score(y_val, preds, average='micro')))
+            
+                    scheduler.step()
+                model.train(True)
 
-    torch.save(rnn.state_dict(), 'models/rnn_model_weights.pth')
+    torch.save(model.state_dict(), 'models/rnn_model_weights.pth')
