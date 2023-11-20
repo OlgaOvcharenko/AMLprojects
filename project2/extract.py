@@ -11,8 +11,11 @@ import neurokit2 as nk
 import numpy as np
 import statsmodels.api as sm
 from scipy.signal.signaltools import wiener
+import scipy
 import biosppy
 from tqdm import tqdm
+import pywt
+
 
 
 class Extractor:
@@ -140,6 +143,34 @@ class Extractor:
         # cur_row["HRV_pNN50"] = hrv_time["HRV_pNN50"].iloc[0]
         # cur_row["HRV_pNN20"] = hrv_time["HRV_pNN20"].iloc[0]
         # cur_row["HRV_TINN"] = hrv_time["HRV_TINN"].iloc[0]
+
+        # FFT
+        fft = scipy.fft.fft(cleaned_ecg)
+        S = np.abs(fft)#/len(cleaned_ecg) #careful, gives large numbers If small numbers are desired then /len(cleaned_ecg)
+        S = S[:int(len(S)/2)]
+        cur_row["fft_max"] = np.max(S)
+        cur_row["fft_sum"] = np.sum(S)
+        cur_row["fft_mean"] = np.mean(S)
+        cur_row["fft_var"] = np.var(S)
+        cur_row["fft_peak"] = np.max(S)
+        cur_row["fft_skew"] = skew(S)
+        cur_row["fft_kurtosis"] = kurtosis(S)
+
+        # Wavelet
+        scales = range(np.nanmin(rr), np.nanmax(rr)) #change dist coeff to change number of wavelets, 10 runs in 6 min
+        waveletname = 'morl'
+        coeff, freq = pywt.cwt(cleaned_ecg, scales, waveletname, 1)
+        energies = np.sum(np.square(np.abs(coeff)), axis=-1)
+        
+        for i, val in enumerate(energies):
+            cur_row[f"wvt_energy_{i}"] = val
+        
+        cur_row["wvt_max"] = np.max(energies)
+        cur_row["wvt_sum"] = np.sum(energies)
+        cur_row["wvt_mean"] = np.mean(energies)
+        cur_row["wvt_var"] = np.var(energies)
+        cur_row["wvt_skew"] = skew(energies)
+        cur_row["wvt_kurtosis"] = kurtosis(energies)
     
         return cur_row
 
