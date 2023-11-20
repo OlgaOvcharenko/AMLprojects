@@ -131,7 +131,7 @@ def predict(X_test, n_epochs: int = 20,
 
 
 def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=20):
-    batch_size = 128
+    batch_size = 64
     data_loader = get_all_data(X_train, y_train, batch_size)
 
     model = RNN().to(device)
@@ -166,7 +166,7 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=20):
                     
                     model.train(True)
                     
-        scheduler.step()
+        # scheduler.step()
                 
 
     torch.save(model.state_dict(), 'models/rnn_model_weights.pth')

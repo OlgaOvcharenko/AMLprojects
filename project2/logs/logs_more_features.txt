@@ -1,0 +1,10 @@
+Extracted / read data.
+(5117, 41)
+(5117, 41)
+Preprocessed.
+Fold 0: score 0.8037109375
+Fold 1: score 0.806640625
+Fold 2: score 0.7908113391984359
+Fold 3: score 0.8250244379276638
+Fold 4: score 0.8084066471163246
+Avg F1: 0.8069187973484849

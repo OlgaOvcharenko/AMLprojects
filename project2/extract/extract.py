@@ -28,6 +28,18 @@ class Extractor:
         res = pd.DataFrame.from_records(vals)
 
         return res
+    
+    def get_clean_signal(self, file_name):
+        vals = []
+        for index in tqdm(range(0, self.X.shape[0])):
+            signal = self.X.loc[index, :]
+            cleaned_ecg = nk.ecg_clean(signal, sampling_rate=300, method='biosppy')
+            cleaned_ecg = hp.remove_baseline_wander(cleaned_ecg, 300)
+            cleaned_ecg = nk.signal_detrend(cleaned_ecg)
+            vals.append(cleaned_ecg)
+
+        res = pd.DataFrame.from_records(vals)
+        res.to_csv(f"data/cleaned_{file_name}.csv", header=True, index=True)
         
     def _extract_one(self, signal):
         cur_row = {}
@@ -131,14 +143,14 @@ class Extractor:
         cur_row["HRV_HTI"] = hrv_time["HRV_HTI"].iloc[0]
         cur_row["HRV_pNN50"] = hrv_time["HRV_pNN50"].iloc[0]
 
-        # cur_row["HRV_SDNN"] = hrv_time["HRV_SDNN"].iloc[0]
-        # cur_row["HRV_RMSSD"] = hrv_time["HRV_RMSSD"].iloc[0]
-        # cur_row["HRV_SDSD"] = hrv_time["HRV_SDSD"].iloc[0]
-        # cur_row["HRV_CVNN"] = hrv_time["HRV_CVNN"].iloc[0]
-        # cur_row["HRV_MedianNN"] = hrv_time["HRV_MedianNN"].iloc[0]
-        # cur_row["HRV_pNN50"] = hrv_time["HRV_pNN50"].iloc[0]
-        # cur_row["HRV_pNN20"] = hrv_time["HRV_pNN20"].iloc[0]
-        # cur_row["HRV_TINN"] = hrv_time["HRV_TINN"].iloc[0]
+        cur_row["HRV_SDNN"] = hrv_time["HRV_SDNN"].iloc[0]
+        cur_row["HRV_RMSSD"] = hrv_time["HRV_RMSSD"].iloc[0]
+        cur_row["HRV_SDSD"] = hrv_time["HRV_SDSD"].iloc[0]
+        cur_row["HRV_CVNN"] = hrv_time["HRV_CVNN"].iloc[0]
+        cur_row["HRV_MedianNN"] = hrv_time["HRV_MedianNN"].iloc[0]
+        cur_row["HRV_pNN50"] = hrv_time["HRV_pNN50"].iloc[0]
+        cur_row["HRV_pNN20"] = hrv_time["HRV_pNN20"].iloc[0]
+        cur_row["HRV_TINN"] = hrv_time["HRV_TINN"].iloc[0]
     
         return cur_row
 

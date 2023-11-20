@@ -50,14 +50,14 @@ def get_model(method: int = 3):
 
 
 def main():
-    extract_data = False
+    extract_data = True
 
     # read data
     if extract_data:
         X_train_path, y_train_path, X_test_path = "data/X_train.csv", "data/y_train.csv", "data/X_test.csv"
 
     else:
-        X_train_path, y_train_path, X_test_path = "data/train_feat.csv", "data/y_train.csv", "data/test_feat.csv"
+        X_train_path, y_train_path, X_test_path = "data/train_feat_new.csv", "data/y_train.csv", "data/test_feat_new.csv"
 
     X_train, y_train, train_ids, X_test, test_ids = read_data(X_train_path, y_train_path, X_test_path, extract_data)
 
@@ -66,16 +66,16 @@ def main():
         extr = Extractor(X_train)
         train_feat = extr.extract()
         X_train = train_feat
-        train_feat.to_csv("data/train_feat.csv",index=False)
+        train_feat.to_csv("data/train_feat_new.csv",index=False)
 
         extr = Extractor(X_test)
         test_feat = extr.extract()
         X_test = test_feat
-        test_feat.to_csv("data/test_feat.csv",index=False)
+        test_feat.to_csv("data/test_feat_new.csv",index=False)
     
     print("Extracted / read data.")
 
-    X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=False)
+    X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=True)
 
     print("Preprocessed.")
     
@@ -102,7 +102,7 @@ def main():
     res = model_full.predict(X_test)
 
     out = pd.DataFrame()
-    out["id"] = test_ids.iloc[:, 0]
+    out["id"] = test_ids
     out["y"] = res
 
     out.to_csv("data/out.csv", index=False)

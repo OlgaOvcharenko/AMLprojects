@@ -1,3 +1,4 @@
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -102,8 +103,8 @@ class CNN(nn.Module):
         self,
         input_size = 1,
         hid_size = 256,
-        kernel_size = 5,
-        num_classes = 5,
+        kernel_size = 4,
+        num_classes = 4,
     ):
         
         super().__init__()
@@ -181,8 +182,8 @@ class RNNModel(nn.Module):
         hid_size,
         rnn_type,
         bidirectional,
-        n_classes=5,
-        kernel_size=5,
+        n_classes=4,
+        kernel_size=4,
     ):
         super().__init__()
             
@@ -222,13 +223,13 @@ class RNNAttentionModel(nn.Module):
         hid_size,
         rnn_type,
         bidirectional,
-        n_classes=5,
-        kernel_size=5,
+        n_classes=4,
+        kernel_size=4,
     ):
         super().__init__()
  
         self.rnn_layer = RNN(
-            input_size=46,
+            input_size=1112,
             hid_size=hid_size,
             rnn_type=rnn_type,
             bidirectional=bidirectional
@@ -243,6 +244,21 @@ class RNNAttentionModel(nn.Module):
             hidden_size=hid_size,
             kernel_size=kernel_size,
         )
+
+        self.conv3 = ConvNormPool(
+            input_size=hid_size,
+            hidden_size=hid_size,
+            kernel_size=kernel_size,
+        )
+
+        self.conv4 = ConvNormPool(
+            input_size=hid_size,
+            hidden_size=hid_size,
+            kernel_size=kernel_size,
+        )
+
+        self.dropout = nn.Dropout(p=0.2)
+
         self.avgpool = nn.AdaptiveMaxPool1d((1))
         self.attn = nn.Linear(hid_size, hid_size, bias=False)
         self.fc = nn.Linear(in_features=hid_size, out_features=n_classes)
@@ -250,8 +266,16 @@ class RNNAttentionModel(nn.Module):
     def forward(self, input):
         x = self.conv1(input)
         x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+
+
         x_out, hid_states = self.rnn_layer(x)
-        x = torch.cat([hid_states[0], hid_states[1]], dim=0).transpose(0, 1)
+        # x_out = self.dropout(x_out)
+        
+        x = torch.cat([hid_states[-1]], dim=0).transpose(0, 1)
+        # x = self.dropout(x)
+
         x_attn = torch.tanh(self.attn(x))
         x = x_attn.bmm(x_out)
         x = x.transpose(2, 1)
@@ -271,31 +295,27 @@ def get_all_data(X_train, y_train, batch_size):
     class_weights = [sum(counts) / c for c in counts]
     example_weights = [class_weights[e] for e in y_train.flatten()]
     sampler = WeightedRandomSampler(example_weights, X_train.shape[0])
-    data_loader = DataLoader(MyDataset(X_tensor, y_tensor), batch_size=batch_size,
-                             sampler=sampler
-    )
+    data_loader = DataLoader(MyDataset(X_tensor, y_tensor), batch_size=batch_size) #, sampler=sampler
 
     return data_loader
 
 
-def predict(X_test, n_epochs: int = 20,
-              n_hidden: int = 128, lr: float = 0.01,
-              batch_size=56, print_iter=2, n_layers=1, output_size=4):
+def predict(X_test):
     nsamples, n_features = X_test.shape[0], X_test.shape[1]
 
-    rnn = RNN()
-    rnn.load_state_dict(torch.load('models/rnn_model_weights.pth'))
-    rnn.eval()
+    model = RNNAttentionModel(1, 64, 'lstm', n_classes=4, kernel_size=4, bidirectional=False).to(device)
+    model.load_state_dict(torch.load('models/rnn_model_weights.pth'))
+    model.eval()
 
     X_test = torch.tensor([X_test], dtype=torch.float32)
-    X_test = torch.transpose(X_test, 0, 1)
+    X_test = torch.transpose(X_test, 0, 1).to(device)
     predictions = []
 
     current_batch = 0
     for iteration in range(nsamples):
         batch_x = X_test[current_batch: current_batch + iteration]
         if len(batch_x) > 0:
-            output = rnn(batch_x)
+            output = model(batch_x)
             _, pred = torch.max(output.data, 1)
             preds = pred.cpu().numpy()
             predictions.extend(preds)
@@ -305,14 +325,18 @@ def predict(X_test, n_epochs: int = 20,
     return predictions
 
 
-def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=20):
-    batch_size = 128
+def train(X_train, y_train, X_val, y_val, print_iter=20):
+    batch_size = 32
+    n_epochs = 40
+    lr = 1e-2
+    
     data_loader = get_all_data(X_train, y_train, batch_size)
+    X_val = torch.tensor([X_val], dtype=torch.float32)
+    X_val = torch.transpose(X_val, 0, 1).to(device)
 
-    model = RNN().to(device)
+    model = RNNAttentionModel(1, 64, 'lstm', n_classes=4, kernel_size=4, bidirectional=False).to(device)
 
     criterion = nn.CrossEntropyLoss()
-    lr = 0.01
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=n_epochs, eta_min=5e-6)
     
@@ -320,7 +344,10 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=20):
 
     for epoch in range(n_epochs):
         for iteration, (batch_x, batch_y) in enumerate(data_loader):
+            a, b = random.randint(0, 17806/2), random.randint(int(17806/3), 17806)
+            batch_x = batch_x[:, :, a:(a+b)]
             batch_x = batch_x.to(device)
+            # print(batch_x.size())
             batch_y = torch.flatten(batch_y).long().to(device)
 
             optimizer.zero_grad()
@@ -330,18 +357,33 @@ def train_rnn(X_train, y_train, n_epochs: int = 20, print_iter=20):
             optimizer.step()
 
             if iteration % print_iter == 0:
-                with torch.no_grad():
-                    model.eval()
-                   
+                _, pred = torch.max(output.data, 1)
+                preds = pred.cpu().numpy()
+                y_vals = batch_y.cpu().numpy()
+                print('Train Iter / Epoch / Num epochs: {:03d}/{}/{}....'.format(iteration, epoch, n_epochs), end=' ')
+                print("Loss: {:.4f} F1 {:.5f}".format(loss.item(), f1_score(y_vals, preds, average='micro')))
+                    
+        with torch.no_grad():
+            model.eval()
+            predictions = []
+            current_batch = 0
+            for iteration in range(X_val.shape[0]):
+                batch_x = X_val[current_batch: current_batch + iteration]
+                if len(batch_x) > 0:
+                    output = model(batch_x)
                     _, pred = torch.max(output.data, 1)
                     preds = pred.cpu().numpy()
-                    y_val = batch_y.cpu().numpy()
-                    print('Iter / Epoch / Num epochs: {:03d}/{}/{}....'.format(iteration, epoch, n_epochs), end=' ')
-                    print("Loss: {:.4f} F1 {:.5f}".format(loss.item(), f1_score(y_val, preds, average='micro')))
+                    predictions.extend(preds)
+
+                current_batch += iteration
+
+            print('Eval Epoch / Num epochs: {}/{}....'.format(epoch, n_epochs), end=' ')
+            print(" F1 {:.5f}".format(f1_score(y_val, predictions, average='micro')))
+            
+            model.train(True)
                     
-                    model.train(True)
-                    
-        scheduler.step()
+        # scheduler.step()
                 
 
     torch.save(model.state_dict(), 'models/rnn_model_weights.pth')
+
