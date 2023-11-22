@@ -72,7 +72,7 @@ class ECGNet(nn.Module):
         self.conv1 = nn.Conv1d(in_channels=self.planes, out_channels=self.planes, kernel_size=fixed_kernel_size,
                                stride=2, padding=2, bias=False)
         self.block = self._make_layer(kernel_size=fixed_kernel_size, stride=1, padding=8)
-        self.bn2 = nn.BatchNorm1d(num_features=self.planes)
+        # self.bn2 = nn.BatchNorm1d(num_features=self.planes)
         self.avgpool = nn.AvgPool1d(kernel_size=8, stride=8, padding=2)
         self.rnn = nn.LSTM(input_size=8, hidden_size=40, num_layers=1, bidirectional=False)
         self.fc = nn.Linear(in_features=680, out_features=num_classes)
@@ -116,12 +116,12 @@ class ECGNet(nn.Module):
             out_sep.append(sep)
 
         out = torch.cat(out_sep, dim=2)
-        out = self.bn1(out)
+        # out = self.bn1(out)
         out = self.relu(out)
         out = self.conv1(out)  # out => [b, 16, 9960]
 
         out = self.block(out)
-        out = self.bn2(out)
+        # out = self.bn2(out)
         out = self.relu(out)
         out = self.avgpool(out)  # out => [b, 64, 10]
         out = out.reshape(out.shape[0], -1)  # out => [b, 640]
@@ -174,18 +174,18 @@ class ResBlock1d(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding=0, downsample=None, num_conv=None):
         super(ResBlock1d, self).__init__()
-        self.bn1 = nn.BatchNorm1d(num_features=in_channels)
+        # self.bn1 = nn.BatchNorm1d(num_features=in_channels)
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
                                stride=stride, padding=padding, bias=False)
         self.SE1 = SE_Module(in_channels=out_channels, dim=1)
-        self.bn4 = nn.BatchNorm1d(num_features=out_channels)
+        # self.bn4 = nn.BatchNorm1d(num_features=out_channels)
         self.conv4 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
                                stride=1, padding=padding, bias=False)
-        self.bn5 = nn.BatchNorm1d(num_features=out_channels)
+        # self.bn5 = nn.BatchNorm1d(num_features=out_channels)
         self.conv5 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
                                stride=1, padding=padding, bias=False)
-        self.bn6 = nn.BatchNorm1d(num_features=out_channels)
+        # self.bn6 = nn.BatchNorm1d(num_features=out_channels)
         self.conv6 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
                                stride=1, padding=padding, bias=False)
         self.SE2 = SE_Module(in_channels=out_channels, dim=1)
@@ -198,7 +198,7 @@ class ResBlock1d(nn.Module):
     def forward(self, x):
         identity = x  # x => [b, 256, 310]
 
-        out = self.bn1(x)
+        # out = self.bn1(x)
         out = self.relu(out)
         out = self.conv1(out)
         out = self.SE1(out)
@@ -211,18 +211,18 @@ class ResBlock1d(nn.Module):
 
         identity = out
 
-        out = self.bn4(out)
+        # out = self.bn4(out)
         out = self.relu(out)
         out = self.dropout(out)
         out = self.conv4(out)
 
-        out = self.bn5(out)
+        # out = self.bn5(out)
         out = self.relu(out)
         out = self.dropout(out)
 
         out = self.conv5(out)
 
-        out = self.bn6(out)
+        # out = self.bn6(out)
         out = self.relu(out)
         out = self.dropout(out)
 
@@ -237,41 +237,41 @@ class ResBlock1d(nn.Module):
         return out
 
 
-class ResBlock2d(nn.Module):
+class ResBlock1d(nn.Module):
 
     def __init__(self, in_channels, out_channels, kernel_size, stride, padding=0, downsample=None, num_conv=1):
-        super(ResBlock2d, self).__init__()
-        self.bn1 = nn.BatchNorm2d(num_features=in_channels)
+        super(ResBlock1d, self).__init__()
+        # self.bn1 = nn.BatchNorm1d(num_features=in_channels)
         self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=stride, padding=padding, bias=False)
+        self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+                               stride=stride, padding=padding, bias=False,dtype=torch.float)
         self.SE = SE_Module(in_channels=out_channels)
         self.downsample = downsample
         self.num_conv = num_conv
         self.dropout = nn.Dropout(.2)
         if self.num_conv == 3:
-            self.bn2 = nn.BatchNorm2d(num_features=out_channels)
-            self.conv2 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                   stride=stride, padding=padding, bias=False)
-            self.bn3 = nn.BatchNorm2d(num_features=out_channels)
-            self.conv3 = nn.Conv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                   stride=stride, padding=padding, bias=False)
+            # self.bn2 = nn.BatchNorm1d(num_features=out_channels)
+            self.conv2 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
+                                   stride=stride, padding=padding, bias=False,dtype=torch.float)
+            # self.bn3 = nn.BatchNorm1d(num_features=out_channels)
+            self.conv3 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
+                                   stride=stride, padding=padding, bias=False,dtype=torch.float)
 
 
     def forward(self, x):
         identity = x
 
-        out = self.bn1(x)
+        # out = self.bn1(x)
         out = self.relu(out)
         out = self.conv1(out)
 
         if self.num_conv == 3:
-            out = self.bn2(out)
+            # out = self.bn2(out)
             out = self.relu(out)
             out = self.dropout(out)
             out = self.conv2(out)
 
-            out = self.bn3(out)
+            # out = self.bn3(out)
             out = self.relu(out)
             out = self.dropout(out)
             out = self.conv3(out)
@@ -290,31 +290,31 @@ class ResBlock2d(nn.Module):
 
 class SE_ECGNet(ECGNet):
 
-    def __init__(self, struct=[(1, 3), (1, 5), (1, 7)], num_classes=34):
+    def __init__(self, struct=[ 3,  5,  7], num_classes=34):
         super(ECGNet, self).__init__()
         self.struct = struct
         #edited originally in::1, out 32
-        self.conv = nn.Conv1d(in_channels=17807, out_channels=256, kernel_size=(1, 50), stride=(1, 2), padding=(0, 0),
-                              bias=False)
+        self.conv = nn.Conv1d(in_channels=1, out_channels=256, kernel_size=50, stride=1, padding=0,
+                              bias=False , dtype=torch.float)
         self.relu = nn.ReLU(inplace=True)
-        self.bn = nn.BatchNorm2d(32)
+        # self.bn = nn.BatchNorm1d()
         self.avgpool = nn.AdaptiveAvgPool1d(1)
-        self.fc = nn.Linear(in_features=256 * len(struct), out_features=num_classes)
-        self.block1 = self._make_layer(in_channels=256, out_channels=64, kernel_size=(1, 15), stride=(1, 2),
-                                       block=ResBlock2d, blocks=3, padding=(0, 7))
+        self.fc = nn.Linear(in_features=256 * len(struct), out_features=num_classes,dtype=torch.float)
+        self.block1 = self._make_layer(in_channels=256, out_channels=64, kernel_size=15, stride=1,
+                                       block=ResBlock1d, blocks=3, padding=0)
 
         self.block2_list = nn.ModuleList()
         self.block3_list = nn.ModuleList()
 
         for i, kernel_size in enumerate(self.struct):
-            block2 = self._make_layer(in_channels=32, out_channels=32, kernel_size=kernel_size, stride=(1, 1),
-                                      block=ResBlock2d, blocks=4, padding=(0, 1 * (i + 1)))
-            block3 = self._make_layer(in_channels=256, out_channels=256, kernel_size=kernel_size[1], stride=2,
-                                      block=ResBlock1d, blocks=4, padding=1 * (i + 1))
-            self.block2_list.append(block2)
+            # block2 = self._make_layer(in_channels=32, out_channels=32, kernel_size=kernel_size, stride=1,
+            #                           block=ResBlock2d, blocks=4, padding=0)
+            block3 = self._make_layer(in_channels=256, out_channels=256, kernel_size=kernel_size, stride=2,
+                                      block=ResBlock1d, blocks=4, padding=1 )
+            # self.block2_list.append(block2)
             self.block3_list.append(block3)
 
-    def _make_layer(self, in_channels, out_channels, kernel_size, stride, block, blocks, padding=(0, 0)):
+    def _make_layer(self, in_channels, out_channels, kernel_size, stride, block, blocks, padding=0 ):
         layers = []
         num_conv = 1
         if blocks == 4:
@@ -322,17 +322,17 @@ class SE_ECGNet(ECGNet):
         downsample = None
         if blocks == 3:
             downsample = nn.Sequential(
-                nn.BatchNorm2d(num_features=out_channels),
+                # nn.BatchNorm1d(num_features=out_channels),
                 nn.ReLU(inplace=True),
-                nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=(1, 1), stride=(1, 2),
-                          padding=(0, 0))
+                nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=1 , stride= 2,
+                          padding=0,dtype=torch.float)
             )
         if block == ResBlock1d:
             downsample = nn.Sequential(
-                nn.BatchNorm1d(num_features=out_channels),
+                # nn.BatchNorm1d(num_features=out_channels),
                 nn.ReLU(inplace=True),
                 nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=1, stride=2,
-                          padding=0)
+                          padding=0,dtype=torch.float)
             )
         for _ in range(blocks):
             layers.append(block(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
@@ -345,14 +345,14 @@ class SE_ECGNet(ECGNet):
     def forward(self, x, info=None):
         out = x
         out = self.conv(out)  # x => [b, 32, 8, 2476]
-        out = self.bn(out)
+        # out = self.bn(out)
         out = self.relu(out)
         out = self.block1(out)  # x => [b, 32, 8, 310]
 
         out_sep = []
         for i in range(len(self.struct)):
-            sep = self.block2_list[i](out)  # x => [b, 32, 8, 310]
-            sep = sep.reshape(sep.shape[0], -1, sep.shape[3])  # x => [b, 256, 310]
+            # sep = self.block2_list[i](out)  # x => [b, 32, 8, 310]
+            # sep = sep.reshape(sep.shape[0], -1, sep.shape[3])  # x => [b, 256, 310]
             sep = self.block3_list[i](sep)  # x => [b, 256, 20]
             sep = self.avgpool(sep)  # x => [b, 256, 1]
             sep = sep.reshape(sep.shape[0], sep.shape[1])
@@ -388,7 +388,7 @@ def transform(sig, train=False):
     '''
     sig = resample(sig, 2048)
     sig = sig.transpose()
-    sig = torch.tensor(sig.copy(), dtype=torch.float)
+    sig = torch.tensor(sig.copy(), dtype=torch.double)
     return sig
 
 def read_data(X_train_path, y_train_path, X_test_path, extract_data):
@@ -399,7 +399,7 @@ def read_data(X_train_path, y_train_path, X_test_path, extract_data):
 
     if extract_data:
         train_ids, test_ids = X_train.iloc[:, 0], X_test.iloc[:, 0]
-        X_train, X_test = X_train.iloc[:,1:], X_test.iloc[:,1:]
+        X_train, X_test = X_train.iloc[1:,1:], X_test.iloc[1:,1:]
     else:
         train_ids, test_ids = pd.DataFrame(list(range(0, X_train.shape[0]))), pd.DataFrame(list(range(0, X_test.shape[0])))
 
@@ -407,12 +407,20 @@ def read_data(X_train_path, y_train_path, X_test_path, extract_data):
 if __name__ == '__main__':
     X_train,y_train,train_ids,X_test,test_ids=read_data('task2_data/X_train.csv','task2_data/y_train.csv','task2_data/X_test.csv',True)
     print(X_train)
-    X_train = torch.tensor(X_train.values)
-    input = torch.randn(16, 8, 5000)
-    info = torch.randn(16, 2)
+    X_train = torch.tensor(X_train.values, dtype=torch.double)
     SE_ECGNet = SE_ECGNet()
-    output = SE_ECGNet(X_train)
-    print(output.shape)
+    for i in X_train:
+        i= torch.reshape(i,(1,17807))
+        i=i.double()
+        print(type(i))
+        # i=torch.tensor(i, dtype=torch.double )
+        output = SE_ECGNet(i.float())
+        print(output)
+
+    # X_train = torch.reshape(X_train, (  1,5116, 17807))
+    # print(X_train.shape)
+    # input = torch.randn(16, 8, 5000)
+    # info = torch.randn(16, 2)
 
 
 #
