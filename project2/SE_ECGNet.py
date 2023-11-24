@@ -41,7 +41,7 @@ class ResBlock(nn.Module):
             out = self.maxpool(out)
             identity = self.downsample(x)
 
-        out += identity
+        # out += identity
         # print(out.shape)
 
         return out
@@ -170,71 +170,71 @@ class SE_Module(nn.Module):
 
 
 
-class ResBlock1d(nn.Module):
-
-    def __init__(self, in_channels, out_channels, kernel_size, stride, padding=0, downsample=None, num_conv=None):
-        super(ResBlock1d, self).__init__()
-        # self.bn1 = nn.BatchNorm1d(num_features=in_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=stride, padding=padding, bias=False)
-        self.SE1 = SE_Module(in_channels=out_channels, dim=1)
-        # self.bn4 = nn.BatchNorm1d(num_features=out_channels)
-        self.conv4 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=1, padding=padding, bias=False)
-        # self.bn5 = nn.BatchNorm1d(num_features=out_channels)
-        self.conv5 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=1, padding=padding, bias=False)
-        # self.bn6 = nn.BatchNorm1d(num_features=out_channels)
-        self.conv6 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
-                               stride=1, padding=padding, bias=False)
-        self.SE2 = SE_Module(in_channels=out_channels, dim=1)
-        self.downsample = downsample
-        self.dropout =nn.Dropout(.2)
-
-
-
-
-    def forward(self, x):
-        identity = x  # x => [b, 256, 310]
-
-        # out = self.bn1(x)
-        out = self.relu(out)
-        out = self.conv1(out)
-        out = self.SE1(out)
-
-
-        if self.downsample is not None:
-            identity = self.downsample(x)
-
-        out += identity
-
-        identity = out
-
-        # out = self.bn4(out)
-        out = self.relu(out)
-        out = self.dropout(out)
-        out = self.conv4(out)
-
-        # out = self.bn5(out)
-        out = self.relu(out)
-        out = self.dropout(out)
-
-        out = self.conv5(out)
-
-        # out = self.bn6(out)
-        out = self.relu(out)
-        out = self.dropout(out)
-
-        out = self.conv6(out)
-
-        out = self.SE2(out)
-
-
-        out += identity
-        out = self.relu(out)
-
-        return out
+# class ResBlock1d(nn.Module):
+#
+#     def __init__(self, in_channels, out_channels, kernel_size, stride, padding=0, downsample=None, num_conv=None):
+#         super(ResBlock1d, self).__init__()
+#         # self.bn1 = nn.BatchNorm1d(num_features=in_channels)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
+#                                stride=stride, padding=padding, bias=False)
+#         self.SE1 = SE_Module(in_channels=out_channels, dim=1)
+#         # self.bn4 = nn.BatchNorm1d(num_features=out_channels)
+#         self.conv4 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
+#                                stride=1, padding=padding, bias=False)
+#         # self.bn5 = nn.BatchNorm1d(num_features=out_channels)
+#         self.conv5 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
+#                                stride=1, padding=padding, bias=False)
+#         # self.bn6 = nn.BatchNorm1d(num_features=out_channels)
+#         self.conv6 = nn.Conv1d(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
+#                                stride=1, padding=padding, bias=False)
+#         self.SE2 = SE_Module(in_channels=out_channels, dim=1)
+#         self.downsample = downsample
+#         self.dropout =nn.Dropout(.2)
+#
+#
+#
+#
+#     def forward(self, x):
+#         out = x  # x => [b, 256, 310]
+#
+#         # out = self.bn1(x)
+#         out = self.relu(out)
+#         out = self.conv1(out)
+#         out = self.SE1(out)
+#
+#
+#         if self.downsample is not None:
+#             identity = self.downsample(x)
+#
+#         # out += identity
+#
+#         identity = out
+#
+#         # out = self.bn4(out)
+#         out = self.relu(out)
+#         out = self.dropout(out)
+#         out = self.conv4(out)
+#
+#         # out = self.bn5(out)
+#         out = self.relu(out)
+#         out = self.dropout(out)
+#
+#         out = self.conv5(out)
+#
+#         # out = self.bn6(out)
+#         out = self.relu(out)
+#         out = self.dropout(out)
+#
+#         out = self.conv6(out)
+#
+#         out = self.SE2(out)
+#
+#
+#         # out += identity
+#         out = self.relu(out)
+#
+#         return out
 
 
 class ResBlock1d(nn.Module):
@@ -245,7 +245,7 @@ class ResBlock1d(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.conv1 = nn.Conv1d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
                                stride=stride, padding=padding, bias=False,dtype=torch.float)
-        self.SE = SE_Module(in_channels=out_channels)
+        # self.SE = SE_Module(in_channels=out_channels)
         self.downsample = downsample
         self.num_conv = num_conv
         self.dropout = nn.Dropout(.2)
@@ -259,7 +259,8 @@ class ResBlock1d(nn.Module):
 
 
     def forward(self, x):
-        identity = x
+        identity=x
+        out = x
 
         # out = self.bn1(x)
         out = self.relu(out)
@@ -277,12 +278,12 @@ class ResBlock1d(nn.Module):
             out = self.conv3(out)
             # print(out.shape)
 
-        out = self.SE(out)
+        # out = self.SE(out)
 
-        if self.downsample is not None:
-            identity = self.downsample(x)
+        # if self.downsample is not None:
+        #     identity = self.downsample(x)
 
-        out += identity
+        # out += identity
         out = self.relu(out)
 
         return out
@@ -297,10 +298,10 @@ class SE_ECGNet(ECGNet):
         self.conv = nn.Conv1d(in_channels=1, out_channels=256, kernel_size=50, stride=1, padding=0,
                               bias=False , dtype=torch.float)
         self.relu = nn.ReLU(inplace=True)
-        # self.bn = nn.BatchNorm1d()
+        self.bn = nn.BatchNorm1d(17758)
         self.avgpool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(in_features=256 * len(struct), out_features=num_classes,dtype=torch.float)
-        self.block1 = self._make_layer(in_channels=256, out_channels=64, kernel_size=15, stride=1,
+        self.block1 = self._make_layer(in_channels=256, out_channels=256, kernel_size=15, stride=1,
                                        block=ResBlock1d, blocks=3, padding=0)
 
         self.block2_list = nn.ModuleList()
@@ -345,7 +346,7 @@ class SE_ECGNet(ECGNet):
     def forward(self, x, info=None):
         out = x
         out = self.conv(out)  # x => [b, 32, 8, 2476]
-        # out = self.bn(out)
+        out = self.bn(out)
         out = self.relu(out)
         out = self.block1(out)  # x => [b, 32, 8, 310]
 
@@ -353,7 +354,7 @@ class SE_ECGNet(ECGNet):
         for i in range(len(self.struct)):
             # sep = self.block2_list[i](out)  # x => [b, 32, 8, 310]
             # sep = sep.reshape(sep.shape[0], -1, sep.shape[3])  # x => [b, 256, 310]
-            sep = self.block3_list[i](sep)  # x => [b, 256, 20]
+            sep = self.block3_list[i](out)  # x => [b, 256, 20]
             sep = self.avgpool(sep)  # x => [b, 256, 1]
             sep = sep.reshape(sep.shape[0], sep.shape[1])
             out_sep.append(sep)
@@ -361,7 +362,7 @@ class SE_ECGNet(ECGNet):
         out = torch.cat(out_sep, dim=1)
         if info != None:
             out = torch.cat([out, info], dim=1)
-        out = self.fc(out)
+        # out = self.fc(out)
 
         return out
 
@@ -399,7 +400,7 @@ def read_data(X_train_path, y_train_path, X_test_path, extract_data):
 
     if extract_data:
         train_ids, test_ids = X_train.iloc[:, 0], X_test.iloc[:, 0]
-        X_train, X_test = X_train.iloc[1:,1:], X_test.iloc[1:,1:]
+        X_train, X_test = X_train.iloc[:,1:], X_test.iloc[:,1:]
     else:
         train_ids, test_ids = pd.DataFrame(list(range(0, X_train.shape[0]))), pd.DataFrame(list(range(0, X_test.shape[0])))
 
