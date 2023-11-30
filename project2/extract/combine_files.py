@@ -24,7 +24,7 @@ X_test1.drop([f"r{r}" for r in range(0, 192)], axis=1, inplace=True)
 print(X_train1.columns)
 print(X_test1.columns)
 
-X_train_path, y_train_path, X_test_path = "data/fft_wvt_min_max_morl.csv", "data/y_train.csv", "data/fft_wvt_min_max_morl_test.csv"
+X_train_path, y_train_path, X_test_path = "data/812_train.csv", "data/y_train.csv", "data/812_test.csv"
 X_train2, y_train2, train_ids2, X_test2, test_ids2 = read_data(X_train_path, y_train_path, X_test_path, False)
 X_train2.drop([f"r{r}" for r in range(0, 160)], axis=1, inplace=True)
 X_test2.drop([f"r{r}" for r in range(0, 201)], axis=1, inplace=True)

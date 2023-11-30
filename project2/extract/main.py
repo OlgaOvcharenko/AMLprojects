@@ -54,7 +54,7 @@ def get_model(method: int = 3):
 
 
 def main():
-    extract_data = False
+    extract_data = True
     oversample = False
 
     # read data

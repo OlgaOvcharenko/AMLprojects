@@ -118,7 +118,7 @@ def main_rnn():
                                                                    slice_ids=False)
     print("Read data.")
 
-    # mm = MinMaxScaler()
+    mm = StandardScaler()
 
     # TODO not equal length of observations, how to handle tails
     if read_train:
@@ -126,8 +126,8 @@ def main_rnn():
         X_train = replace_nan(X_train, slice_by_avg_len=True)
         X_val = replace_nan(X_val, slice_by_avg_len=True)
 
-        # X_train = mm.fit_transform(X_train)
-        # X_val = mm.transform(X_train)
+        X_train = mm.fit_transform(X_train)
+        X_val = mm.transform(X_train)
 
         print("Training.")
         
@@ -159,21 +159,21 @@ def main_lstm():
     # Temporal solution to validate
     # TODO later add cross-fold once model is set
     X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(
-        # X_train='./data/X_train.csv',
-        # X_test='./data/X_test.csv',
-        # X_train='./data/cleaned_X_train.csv',
-        # y_train='./data/y_train.csv',
-        # X_test='./data/cleaned_X_test.csv',
+        # X_train='./project2/data/X_train.csv',
+        # X_test='./project2/data/X_test.csv',
+        # X_train='./project2/data/cleaned_X_train.csv',
+        # y_train='./project2/data/y_train.csv',
+        # X_test='./project2/data/cleaned_X_test.csv',
 
-        X_train='./data/train_combined.csv',
-        y_train='./data/y_train.csv',
-        X_test='./data/test_combined.csv',
+        X_train='./project2/data/train_combined.csv',
+        y_train='./project2/data/y_train.csv',
+        X_test='./project2/data/test_combined.csv',
         read_train=read_train,
         read_test=read_test,
         slice_ids=False)
     print("Read data.")
 
-    mm = MinMaxScaler()
+    mm = StandardScaler()
 
     # TODO not equal length of observations, how to handle tails
     if read_train:
