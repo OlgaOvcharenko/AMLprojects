@@ -17,8 +17,19 @@ from tqdm import tqdm
 class Extractor:
     def __init__(self, x):
         self.X = x
+
+    def remove_starting_period(self):
+        self.X = self.X.drop(self.X.columns[range(700)], axis=1)
+    
+    def check_flipped(self):
+        a = (np.max(self.X, axis=1) <= -0.75*np.min(self.X, axis=1))
+        idx = np.where(a)[0]
+        self.X.loc[idx,:] = - self.X.loc[idx,:]
         
     def extract(self):
+        self.remove_starting_period()
+        self.check_flipped()
+
         vals = []
         for index in tqdm(range(0, self.X.shape[0])):
             row = self.X.loc[index, :]
@@ -77,6 +88,11 @@ class Extractor:
 
         #rr_distance
         rr = (rpeaks[1:] - rpeaks[:n_heartbeats - 1])  # rr-rate in seconds
+        cur_row["mean"] = np.nanmean(cleaned_ecg)
+        cur_row["var"] = np.nanvar(cleaned_ecg)
+        cur_row["skew"] = skew(cleaned_ecg)
+
+
         cur_row["mean_rr"] = np.nanmean(rr)
         # cur_row["median_rr"] = np.nanmedian(rr)
         cur_row["var_rr"] = np.nanvar(rr)
@@ -96,6 +112,8 @@ class Extractor:
 
         cur_row["skew_r"] = skew(r_amplitude)
         cur_row["kurtosis_r"] = kurtosis(r_amplitude)
+        cur_row["q95_r"] = np.quantile(np.diff(rpeaks),0.95)
+        cur_row["q95_r"] = np.quantile(np.diff(rpeaks),0.05)
 
         # q_amplitude
         q_amplitude = q_peaks
@@ -106,26 +124,42 @@ class Extractor:
         cur_row["min_q"] = np.nanmin(q_amplitude)
         cur_row["skew_q"] = skew(q_amplitude)
         cur_row["kurtosis_q"] = kurtosis(q_amplitude)
+        cur_row["q95_q"] = np.quantile(np.diff(q_amplitude),0.95)
+        cur_row["q95_q"] = np.quantile(np.diff(q_amplitude),0.05)
 
         # t_amplitude
         t_amplitude = t_peaks
-        cur_row["mean_q"] = np.nanmean(t_amplitude)
-        cur_row["median_q"] = np.nanmedian(t_amplitude)
+        cur_row["mean_t"] = np.nanmean(t_amplitude)
+        cur_row["median_t"] = np.nanmedian(t_amplitude)
         cur_row["var_t"] = np.nanvar(t_amplitude)
         cur_row["max_t"] = np.nanmax(t_amplitude)
         cur_row["min_t"] = np.nanmin(t_amplitude)
         cur_row["skew_t"] = skew(t_amplitude)
         cur_row["kurtosis_t"] = kurtosis(t_amplitude)
+        cur_row["q95_t"] = np.quantile(np.diff(t_amplitude),0.95)
+        cur_row["q95_t"] = np.quantile(np.diff(t_amplitude),0.05)
 
         # s_amplitude
         s_amplitude = s_peaks
-        cur_row["mean_q"] = np.nanmean(s_amplitude)
-        cur_row["median_q"] = np.nanmedian(s_amplitude)
+        cur_row["mean_s"] = np.nanmean(s_amplitude)
+        cur_row["median_s"] = np.nanmedian(s_amplitude)
         cur_row["var_s"] = np.nanvar(s_amplitude)
         cur_row["max_s"] = np.nanmax(s_amplitude)
         cur_row["min_s"] = np.nanmin(s_amplitude)
         cur_row["skew_s"] = skew(s_amplitude)
         cur_row["kurtosis_s"] = kurtosis(s_amplitude)
+        cur_row["q95_s"] = np.quantile(np.diff(s_amplitude),0.95)
+        cur_row["q95_t"] = np.quantile(np.diff(s_amplitude),0.05)
+
+        #qrs_duration
+        qrs_duration = [(b - a) for a, b in zip(t_onsets, t_offsets)]
+        cur_row["mean_qrs"] = np.nanmean(qrs_duration)
+        cur_row["median_qrs"] = np.nanmedian(qrs_duration)
+        cur_row["var_qrs"] = np.nanvar(qrs_duration)
+        cur_row["max_qrs"] = np.nanmax(qrs_duration)
+        cur_row["min_qrs"] = np.nanmin(qrs_duration)
+        cur_row["skew_qrs"] = skew(qrs_duration)
+        cur_row["kurtosis_qrs"] = kurtosis(qrs_duration)
 
         #qrs_duration
         qrs_duration = [(b - a) for a, b in zip(r_onsets, r_offsets)]

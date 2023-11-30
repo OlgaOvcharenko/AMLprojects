@@ -175,4 +175,5 @@ data/
 
 .DS_Store
 
-
+models
+results

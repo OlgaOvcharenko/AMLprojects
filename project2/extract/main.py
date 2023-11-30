@@ -3,11 +3,15 @@ import numpy as np
 from extract import Extractor
 from preprocess import preprocess
 from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import f1_score
+from sklearn.metrics import classification_report, f1_score
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
-from sklearn.ensemble import StackingClassifier
+from sklearn.ensemble import RandomForestClassifier, StackingClassifier
 import lightgbm as lgb
+
+from imblearn.over_sampling import SMOTE
+from imblearn.combine import SMOTETomek
+from imblearn.under_sampling import TomekLinks
 
 
 def read_data(X_train_path, y_train_path, X_test_path, extract_data):  
@@ -41,7 +45,7 @@ def get_model(method: int = 3):
         estimators = [ 
             ('cb', CatBoostClassifier(iterations=1000, learning_rate=0.01, logging_level='Silent')),
             ('xgb', XGBClassifier(random_state=42)),
-            # ('lgbm', lgb.LGBMClassifier(random_state=42))
+            # ('rf', RandomForestClassifier(n_estimators=200))
         ]
     
         model = StackingClassifier(estimators=estimators, final_estimator=CatBoostClassifier(iterations=1000, learning_rate=0.01, logging_level='Silent'))
@@ -50,14 +54,16 @@ def get_model(method: int = 3):
 
 
 def main():
-    extract_data = True
+    extract_data = False
+    oversample = False
 
     # read data
     if extract_data:
         X_train_path, y_train_path, X_test_path = "data/X_train.csv", "data/y_train.csv", "data/X_test.csv"
 
     else:
-        X_train_path, y_train_path, X_test_path = "data/train_feat_new.csv", "data/y_train.csv", "data/test_feat_new.csv"
+        # X_train_path, y_train_path, X_test_path = "data/train_feat_new.csv", "data/y_train.csv", "data/test_feat_new.csv"
+        X_train_path, y_train_path, X_test_path = "data/train_combined.csv", "data/y_train.csv", "data/test_combined.csv"
 
     X_train, y_train, train_ids, X_test, test_ids = read_data(X_train_path, y_train_path, X_test_path, extract_data)
 
@@ -75,7 +81,13 @@ def main():
     
     print("Extracted / read data.")
 
-    X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=True)
+    X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=False)
+    # ix = (y_train == 1) | (y_train == 3)
+    # X_train = X_train[ix]
+    # y_train = y_train[ix]
+    # y_train[y_train == 1] = 0
+    # y_train[y_train == 3] = 1
+    # y_train = np.reshape(y_train, (y_train.shape[0], 1))
 
     print("Preprocessed.")
     
@@ -85,17 +97,33 @@ def main():
     model = get_model()
     f1_scores = 0
     for i, (train_index, test_index) in enumerate(splits):
+        train_x, train_y, test_x, test_y = X_train[train_index], y_train[train_index], X_train[test_index], y_train[test_index]
+
+        if oversample:
+            oversampler=SMOTETomek(tomek=TomekLinks(sampling_strategy='majority'))
+            train_x, train_y = oversampler.fit_resample(train_x, train_y)
+
+            print("Oversample data.")
+
         model = get_model()
-        model.fit(X_train[train_index], y_train[train_index])
+        model.fit(train_x, train_y)
 
-        pred = model.predict(X_train[test_index])
+        pred = model.predict(test_x)
 
-        score = f1_score(y_train[test_index], pred, average="micro")
+        score = f1_score(test_y, pred, average="micro")
 
         print(f"Fold {i}: score {score}")
         f1_scores += score
 
+        print(classification_report(test_y, pred))
+
     print(f"Avg F1: {f1_scores / nfolds}")
+
+    if oversample:
+        oversampler = SMOTETomek(tomek=TomekLinks(sampling_strategy='majority'))
+        X_train, y_train = oversampler.fit_resample(X_train, y_train)
+
+        print("Oversample data.")
 
     model_full = get_model()
     model_full.fit(X_train,y_train)
@@ -105,7 +133,7 @@ def main():
     out["id"] = test_ids
     out["y"] = res
 
-    out.to_csv("data/out.csv", index=False)
+    out.to_csv("data/out_3class.csv", index=False)
 
 
 main()

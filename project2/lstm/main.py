@@ -14,12 +14,18 @@ import lstm as lstm
 num_features_avg = 0
 
 
-def load_data(X_train: str, y_train: str, X_test: str, read_test: bool, read_train: bool):
+def load_data(X_train: str, y_train: str, X_test: str, read_test: bool, read_train: bool, slice_ids: True):
     start_read = time.time()
-    X_train = pd.read_csv(X_train).to_numpy()[:, 1:] if read_train else None
+    X_train = pd.read_csv(X_train).to_numpy() if read_train else None
+    if slice_ids:
+        X_train = X_train[:, 1:]
+
     X_test = pd.read_csv(X_test).to_numpy() if read_test else None
-    X_test_ind = X_test[:, 0] if read_test else None
-    X_test = X_test[:, 1:] if read_test else None
+
+    X_test_ind = pd.DataFrame(list(range(0, X_test.shape[0])))
+    if slice_ids:
+        X_test_ind = X_test[:, 0] if read_test else None
+        X_test = X_test[:, 1:] if read_test else None
     y_train = pd.read_csv(y_train).to_numpy()[:, 1:] if read_train else None
 
     # TODO fix later to K-Fold
@@ -104,11 +110,12 @@ def main_rnn():
 
     # Temporal solution to validate
     # TODO later add cross-fold once model is set
-    X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(X_train='./data/X_train.csv',
+    X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(X_train='./data/train_feat_new.csv',
                                                                    y_train='./data/y_train.csv',
-                                                                   X_test='./data/X_test.csv',
+                                                                   X_test='./data/test_feat_new.csv',
                                                                    read_train=read_train,
-                                                                   read_test=read_test)
+                                                                   read_test=read_test,
+                                                                   slice_ids=False)
     print("Read data.")
 
     # mm = MinMaxScaler()
@@ -151,14 +158,22 @@ def main_lstm():
 
     # Temporal solution to validate
     # TODO later add cross-fold once model is set
-    X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(X_train='./data/cleaned_X_train.csv',
-                                                                   y_train='./data/y_train.csv',
-                                                                   X_test='./data/cleaned_X_test.csv',
-                                                                   read_train=read_train,
-                                                                   read_test=read_test)
+    X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(
+        # X_train='./data/X_train.csv',
+        # X_test='./data/X_test.csv',
+        # X_train='./data/cleaned_X_train.csv',
+        # y_train='./data/y_train.csv',
+        # X_test='./data/cleaned_X_test.csv',
+
+        X_train='./data/train_combined.csv',
+        y_train='./data/y_train.csv',
+        X_test='./data/test_combined.csv',
+        read_train=read_train,
+        read_test=read_test,
+        slice_ids=False)
     print("Read data.")
 
-    mm = MinMaxScaler(feature_range=(-1, 1))
+    mm = MinMaxScaler()
 
     # TODO not equal length of observations, how to handle tails
     if read_train:
