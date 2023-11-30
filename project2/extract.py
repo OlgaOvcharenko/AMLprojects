@@ -144,6 +144,8 @@ class Extractor:
         # cur_row["HRV_pNN20"] = hrv_time["HRV_pNN20"].iloc[0]
         # cur_row["HRV_TINN"] = hrv_time["HRV_TINN"].iloc[0]
 
+        sig = signal.dropna().to_numpy(dtype='float32')
+        
         # FFT
         fft = scipy.fft.fft(cleaned_ecg)
         S = np.abs(fft)#/len(cleaned_ecg) #careful, gives large numbers If small numbers are desired then /len(cleaned_ecg)
@@ -158,12 +160,12 @@ class Extractor:
 
         # Wavelet
         scales = range(np.nanmin(rr), np.nanmax(rr)) #change dist coeff to change number of wavelets, 10 runs in 6 min
-        waveletname = 'morl'
-        coeff, freq = pywt.cwt(cleaned_ecg, scales, waveletname, 1)
+        waveletname = pywt.wavelist()[15]
+        coeff, freq = pywt.cwt(cleaned_ecg, scales, 'morl', 1)
         energies = np.sum(np.square(np.abs(coeff)), axis=-1)
         
-        for i, val in enumerate(energies):
-            cur_row[f"wvt_energy_{i}"] = val
+        #for i, val in enumerate(energies):
+        #    cur_row[f"wvt_energy_{i}"] = val
         
         cur_row["wvt_max"] = np.max(energies)
         cur_row["wvt_sum"] = np.sum(energies)
@@ -171,6 +173,32 @@ class Extractor:
         cur_row["wvt_var"] = np.var(energies)
         cur_row["wvt_skew"] = skew(energies)
         cur_row["wvt_kurtosis"] = kurtosis(energies)
+        
+        r_p = biosppy.signals.ecg.engzee_segmenter(signal, 300)['rpeaks']
+        bts = biosppy.signals.ecg.extract_heartbeats(sig, r_p, 300)['templates']
+        
+        mu = np.mean(bts, axis=0) 
+        var = np.std(bts, axis=0)
+        
+        mean_var_down = mu - var
+        mean_var_up = mu - var
+        
+        cur_row["mean_up"] = np.nanmean(mean_var_up)
+        cur_row["median_up"] = np.nanmedian(mean_var_up)
+        cur_row["var_up"] = np.nanvar(mean_var_up)
+        cur_row["max_up"] = np.nanmax(mean_var_up)
+        cur_row["min_up"] = np.nanmin(mean_var_up)
+        cur_row["skew_up"] = skew(mean_var_up)
+        cur_row["kurtosis_up"] = kurtosis(mean_var_up)
+        
+        cur_row["mean_down"] = np.nanmean(mean_var_down)
+        cur_row["median_down"] = np.nanmedian(mean_var_down)
+        cur_row["var_down"] = np.nanvar(mean_var_down)
+        cur_row["max_down"] = np.nanmax(mean_var_down)
+        cur_row["min_down"] = np.nanmin(mean_var_down)
+        cur_row["skew_down"] = skew(mean_var_down)
+        cur_row["kurtosis_down"] = kurtosis(mean_var_down)
+        
     
         return cur_row
 
