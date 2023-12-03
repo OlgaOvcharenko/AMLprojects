@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
+from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
 import rnn as rnn
 import classifiers as SVM
@@ -39,6 +39,7 @@ def load_data(X_train: str, y_train: str, X_test: str, read_test: bool, read_tra
         X_train, X_val, y_train, y_val = None, None, None, None
 
     print(f"Reading data in {time.time() - start_read} seconds.")
+    print(X_test.shape)
     return X_train, y_train, X_val, y_val, X_test, X_test_ind
 
 
@@ -69,87 +70,6 @@ def evaluate(y_val, y_pred):
     print(classification_report(y_val, y_pred))
 
 
-def main_svm():
-    # To train only or to create test only, model is saved
-    read_train = True
-    read_test = True
-
-    # Temporal solution to validate
-    # TODO later add cross-fold once model is set
-    X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(X_train='Data/X_train.csv',
-                                                                   y_train='Data/y_train.csv',
-                                                                   X_test='Data/X_test.csv',
-                                                                   read_train=read_train,
-                                                                   read_test=read_test)
-
-    # TODO not equal length of observations, how to handle tails
-    if read_train:
-        X_train = replace_nan(X_train, slice_by_avg_len=True)
-        X_val = replace_nan(X_val, slice_by_avg_len=True)
-
-    if read_test:
-        X_test = replace_nan(X_test, slice_by_avg_len=True)
-
-        model = SVM.SVM_model(model_name='voting')
-        X_train, X_test, X_val = model.prepare_data(X_train, X_test, X_val)
-        model.train(X_train, y_train)
-        model.score(X_val, y_val)
-
-        predictions = model.predict(X_test)
-
-        # Save output
-        res = {'id': X_test_ind, 'y': predictions}
-        df = pd.DataFrame(res)
-        df.to_csv('results/out_lstm.csv', index=False)
-
-
-def main_rnn():
-    # To train only or to create test only, model is saved
-    read_train = True
-    read_test = True
-
-    # Temporal solution to validate
-    # TODO later add cross-fold once model is set
-    X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(X_train='./data/train_feat_new.csv',
-                                                                   y_train='./data/y_train.csv',
-                                                                   X_test='./data/test_feat_new.csv',
-                                                                   read_train=read_train,
-                                                                   read_test=read_test,
-                                                                   slice_ids=False)
-    print("Read data.")
-
-    mm = StandardScaler()
-
-    # TODO not equal length of observations, how to handle tails
-    if read_train:
-        print("Preprocessing.")
-        X_train = replace_nan(X_train, slice_by_avg_len=True)
-        X_val = replace_nan(X_val, slice_by_avg_len=True)
-
-        X_train = mm.fit_transform(X_train)
-        X_val = mm.transform(X_train)
-
-        print("Training.")
-        
-        rnn.train_rnn(X_train, y_train)
-        predictions = rnn.predict(X_val)
-
-        evaluate(y_val=y_val, y_pred=predictions)
-
-    if read_test:
-        X_test = replace_nan(X_test, slice_by_avg_len=False)
-        # X_test = mm.transform(X_test) if read_train else mm.fit_transform(X_test)
-
-        predictions = rnn.predict(X_test)
-
-        # Save output
-        res = {'id': X_test_ind, 'y': predictions}
-        print(len(X_test_ind))
-        print(len(predictions))
-
-        df = pd.DataFrame(res)
-        df.to_csv('results/out_lstm.csv', index=False)
-
 
 def main_lstm():
     # To train only or to create test only, model is saved
@@ -159,51 +79,58 @@ def main_lstm():
     # Temporal solution to validate
     # TODO later add cross-fold once model is set
     X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(
-        # X_train='./project2/data/X_train.csv',
-        # X_test='./project2/data/X_test.csv',
-        # X_train='./project2/data/cleaned_X_train.csv',
-        # y_train='./project2/data/y_train.csv',
-        # X_test='./project2/data/cleaned_X_test.csv',
-
-        X_train='./project2/data/train_combined.csv',
+        X_train='./project2/data/train_combined_cnn_64.csv',
+        X_test='./project2/data/test_combined_cnn_64.csv',
         y_train='./project2/data/y_train.csv',
-        X_test='./project2/data/test_combined.csv',
         read_train=read_train,
         read_test=read_test,
         slice_ids=False)
     print("Read data.")
 
-    mm = StandardScaler()
+    mm = MinMaxScaler()
 
     # TODO not equal length of observations, how to handle tails
-    if read_train:
-        print("Preprocessing.")
-        X_train = replace_nan(X_train, slice_by_avg_len=False)
-        X_val = replace_nan(X_val, slice_by_avg_len=False)
+    
+    print("Preprocessing.")
+    X_train = replace_nan(X_train, slice_by_avg_len=False)
+    X_val = replace_nan(X_val, slice_by_avg_len=False)
+    X_train = replace_nan(X_train, slice_by_avg_len=False)
 
-        X_train = mm.fit_transform(X_train)
-        X_val = mm.transform(X_val)
+    X_train = mm.fit_transform(X_train)
+    X_val = mm.transform(X_val)
 
+    if True:
         print("Training.")
         
         lstm.train(X_train, y_train, X_val, y_val)
-        predictions = lstm.predict(X_val)
+        _, _, predictions = lstm.predict(X_train, X_val)
 
         evaluate(y_val=y_val, y_pred=predictions)
 
     if read_test:
+        X_train = np.vstack([X_train, X_val])
         X_test = replace_nan(X_test, slice_by_avg_len=False)
         X_test = mm.transform(X_test) if read_train else mm.fit_transform(X_test)
 
-        predictions = lstm.predict(X_test)
+        hn_train, hn_test, predictions = lstm.predict(X_train, X_test)
 
         # Save output
         res = {'id': X_test_ind, 'y': predictions}
-        print(len(X_test_ind))
-        print(len(predictions))
+        X_test_ind["y"] = predictions
+        X_test_ind.rename(columns={0: "id"}, inplace=True)
+        print(X_test_ind)
 
-        df = pd.DataFrame(res)
-        df.to_csv('results/out_lstm.csv', index=False)
+        df = X_test_ind
+        df.to_csv('project2/results/out_lstm.csv', index=False)
+
+        df = pd.DataFrame(hn_train)
+        print(df)
+        df.to_csv('project2/data/hn_lstm_train.csv', index=False)
+
+        print(hn_test)
+        df = pd.DataFrame(hn_test)
+        print(df)
+        df.to_csv('project2/data/hn_lstm_test.csv', index=False)
 
 
 if __name__ == "__main__":

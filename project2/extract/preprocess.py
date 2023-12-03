@@ -1,3 +1,4 @@
+from catboost import CatBoostClassifier
 import numpy as np
 import phate
 import umap
@@ -61,14 +62,14 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     # fs = SelectKBest(score_func=f_regression, k=200)
     # X_train = fs.fit_transform(X_train, y_train.ravel())
     # X_test = fs.transform(X_test)
-    # X_train, X_test = recursive_elemination(X_train, y_train, X_test)
+    X_train, X_test = recursive_elemination(X_train, y_train, X_test)
 
     print(X_train.shape)
     return X_train, X_test
 
 
 def recursive_elemination(X_train: np.array, y_train: np.array, X_test: np.array):
-    model = LogisticRegression()
+    model = CatBoostClassifier()
     rfe = RFE(model)
 
     X_train = rfe.fit_transform(X_train, y_train)

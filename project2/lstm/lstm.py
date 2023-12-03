@@ -322,29 +322,48 @@ def get_all_data(X_train, y_train, batch_size):
     return data_loader
 
 
-def predict(X_test):
-    nsamples, n_features = X_test.shape[0], X_test.shape[1]
+def predict(X_train, X_test):
+    X_test = torch.Tensor(X_test)
+    X_test = torch.reshape(X_test, (X_test.shape[0], 1, X_test.shape[1]))
 
-    model = RNNAttentionModel(1, 64, 'lstm', n_classes=4, kernel_size=4, bidirectional=False).to(device)
-    model.load_state_dict(torch.load('models/rnn_model_weights.pth'))
+    X_train = torch.Tensor(X_train)
+    X_train = torch.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+
+    input_size = X_test.shape[2]
+    hidden_size = 16
+    num_layers = 4
+    num_classes = 4
+
+    model = LSTM1(num_classes, input_size, hidden_size, num_layers, X_test.shape[1])
+    model.load_state_dict(torch.load('project2/models/rnn_model_weights_best.pth'))
     model.eval()
 
-    X_test = torch.tensor([X_test], dtype=torch.float32)
-    X_test = torch.transpose(X_test, 0, 1).to(device)
-    predictions = []
+    model = model.to(device)
 
-    current_batch = 0
-    for iteration in range(nsamples):
-        batch_x = X_test[current_batch: current_batch + iteration]
+    hns_train = []
+    for iteration in range(X_train.shape[0]):
+        batch_x = X_train[iteration:iteration+1]
+        batch_x = batch_x.to(device)
         if len(batch_x) > 0:
-            output = model(batch_x)
+            hn, output = model(batch_x)
+            hn = hn.cpu().detach().numpy()[0]
+            hns_train.append(hn)
+
+
+    predictions, hns = [], []
+    for iteration in range(X_test.shape[0]):
+        batch_x = X_test[iteration:iteration+1]
+        batch_x = batch_x.to(device)
+        if len(batch_x) > 0:
+            hn, output = model(batch_x)
             _, pred = torch.max(output.data, 1)
             preds = pred.cpu().numpy()
             predictions.extend(preds)
 
-        current_batch += iteration
+            hn = hn.cpu().detach().numpy()[0]
+            hns.append(hn)
 
-    return predictions
+    return hns_train, hns, predictions
 
 class LSTM1(nn.Module):
     def __init__(self, num_classes, input_size, hidden_size, num_layers, seq_length):
@@ -360,17 +379,20 @@ class LSTM1(nn.Module):
         self.fc_1 =  nn.Linear(2 * hidden_size, 128) #fully connected 1
         self.fc = nn.Linear(128, num_classes) #fully connected last layer
 
-        self.fc_single = nn.Linear(hidden_size * 3, num_classes)
-        self.fc_0 =  nn.Linear(3 * hidden_size, 32)
-        self.fc_2 =  nn.Linear(32, num_classes)
+        self.fc_single = nn.Linear(hidden_size * 2, num_classes)
+        self.fc_0 =  nn.Linear(2 * hidden_size, 64)
+        self.fc_2 =  nn.Linear(64, num_classes)
 
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
         self.attn = nn.Linear(2 * hidden_size, 2 * hidden_size, bias=False)
-        self.avgpool = nn.AdaptiveMaxPool1d((1))
 
         self.dropout = nn.Dropout(p=0.5)
+
+        self.bn = nn.BatchNorm1d(32)
+
+        self.maxpool = nn.MaxPool1d(4, stride=1)
     
     def forward(self,x):
         h_0 = torch.zeros(2 * self.num_layers, x.size(0), self.hidden_size).to(device) #hidden state
@@ -378,33 +400,21 @@ class LSTM1(nn.Module):
         x = x.to(device)
         
         output, (hn, cn) = self.lstm(x, (h_0, c_0))
-        # hn = torch.cat((hn[-2,:,:], hn[-1,:,:]), dim = 1)
-        # out = self.relu(hn)
-        # out = self.fc_1(out) #first Dense
-        # out = self.relu(out) #relu
-        # out = self.fc(out) #Final Output
-
-        hn = torch.cat((hn[-3,:,:], hn[-2,:,:], hn[-1,:,:]), dim = 1)
-
-        # x_attn = torch.tanh(self.attn(hn))
-        # x = x_attn.bmm(output)
-        # x = x.transpose(2, 1)
-        # x = self.avgpool(x)
-        # x = x.view(-1, x.size(1) * x.size(2))
-        # x = F.softmax(self.fc(x), dim=-1)
-    
-        # dense_outputs=self.fc_single(hn)
+        hn = torch.cat((hn[-2,:,:], hn[-1,:,:]), dim = 1)
+        # attn = torch.mean(hn, dim=0)
         
-        hn = self.dropout(hn)
+        # hn = self.dropout(hn)
+        # out = self.fc_single(hn)
+
         dense_outputs=self.fc_0(hn)
+        dense_outputs = self.relu(dense_outputs)
+        # dense_outputs = self.bn(dense_outputs)
         dense_outputs=self.fc_2(dense_outputs)
         out = self.relu(dense_outputs)
-
-        dense_outputs = self.relu(dense_outputs)
-        return out
+        return hn, out
 
 def train(X_train, y_train, X_val, y_val, print_iter=20):
-    batch_size = 128
+    batch_size = 64
 
     # Prepare data
     X_train = torch.Tensor(X_train)
@@ -422,12 +432,12 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
     y_val = torch.Tensor(y_val)
 
     # Prepare model
-    n_epochs = 100
+    n_epochs = 300
     lr = 0.01
 
     input_size = X_train.shape[2]
-    hidden_size = 16
-    num_layers = 4
+    hidden_size = 8
+    num_layers = 2
     num_classes = 4
 
     model = LSTM1(num_classes, input_size, hidden_size, num_layers, X_train.shape[1])
@@ -440,6 +450,8 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
     model = model.to(device)
     model.train(True)
 
+    best_val = 0
+
     for epoch in range(n_epochs):
         expected, actual, losses = [], [], []
         for iteration, (batch_x, batch_y) in enumerate(data_loader):
@@ -447,7 +459,7 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
             batch_y = torch.flatten(batch_y).long().to(device)
 
             optimizer.zero_grad()
-            output = model(batch_x)
+            hid, output = model(batch_x)
 
             loss = criterion(output, batch_y)
             loss.backward()
@@ -474,15 +486,21 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
             for iteration in range(X_val.shape[0]):
                 batch_x = X_val[iteration:iteration+1]
                 if len(batch_x) > 0:
-                    output = model(batch_x)
+                    hid, output = model(batch_x)
                     _, pred = torch.max(output.data, 1)
                     preds = pred.cpu().numpy()
                     predictions.extend(preds)
 
                 # current_batch += 1
 
+            f1_val = f1_score(y_val, predictions, average='micro')
             print('Eval Epoch / Num epochs: {}/{}....'.format(epoch, n_epochs), end=' ')
-            print(" F1: {:.5f}\n".format(f1_score(y_val, predictions, average='micro')))
+            print(" F1: {:.5f}\n".format(f1_val))
+
+            if f1_val > 0.75 and f1_val > best_val:
+                best_val = f1_val
+                print(f"\nSaved model with F1: {f1_val}\n")
+                torch.save(model.state_dict(), f'project2/models/rnn_model_weights_best.pth')
 
             if epoch == n_epochs - 1:
                 print(classification_report(y_val, predictions))
@@ -492,7 +510,7 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
         scheduler.step()
                 
 
-    torch.save(model.state_dict(), 'models/rnn_model_weights.pth')
+    torch.save(model.state_dict(), 'project2/models/rnn_model_weights.pth')
 
 
 def train_old(X_train, y_train, X_val, y_val, print_iter=20):

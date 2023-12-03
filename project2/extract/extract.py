@@ -27,7 +27,7 @@ class Extractor:
         self.X.loc[idx,:] = - self.X.loc[idx,:]
         
     def extract(self):
-        self.remove_starting_period()
+        # self.remove_starting_period()
         self.check_flipped()
 
         r_vals = []
@@ -41,18 +41,15 @@ class Extractor:
         
         min_r_len = min([len(v) for v in r_vals])
         print(min_r_len)
-        print(r_vals)
         r_vals = [v[:min_r_len] for v in r_vals]
         r_vals = np.array(r_vals)
-        print(r_vals)
         r_vals = r_vals[:, ~np.isnan(r_vals).any(axis=0)]
         col_names = [f'r{i}' for i in range(r_vals.shape[1])]
-        print(r_vals)
 
         res_r = pd.DataFrame(r_vals, columns=col_names)
         res_other = pd.DataFrame.from_records(vals)
 
-        res = pd.concat([res_other, res_r])
+        res = res_other.join(res_r)
 
         return res
     
@@ -73,7 +70,7 @@ class Extractor:
         r = []
 
         # Automatically process the (raw) ECG signal
-        cleaned_ecg = nk.ecg_clean(signal, sampling_rate=300, method='biosppy')
+        cleaned_ecg = signal.dropna().to_numpy(dtype='float32')
         cleaned_ecg = hp.remove_baseline_wander(cleaned_ecg, 300)
         cleaned_ecg = nk.signal_detrend(cleaned_ecg)
 

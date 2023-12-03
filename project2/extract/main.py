@@ -1,8 +1,9 @@
+import optuna
 import pandas as pd
 import numpy as np
 from extract import Extractor
 from preprocess import preprocess
-from sklearn.model_selection import StratifiedKFold
+from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import classification_report, f1_score
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
@@ -44,6 +45,7 @@ def get_model(method: int = 3):
     elif method == 3:
         estimators = [ 
             ('cb', CatBoostClassifier(iterations=1000, learning_rate=0.01, logging_level='Silent')),
+            # ('cb', CatBoostClassifier(iterations=1000, learning_rate= 0.0011611247781093898, depth=1, min_data_in_leaf=62, logging_level='Silent')),
             ('xgb', XGBClassifier(random_state=42)),
             # ('rf', RandomForestClassifier(n_estimators=200))
         ]
@@ -53,8 +55,8 @@ def get_model(method: int = 3):
     return model
 
 
-def main():
-    extract_data = True
+def objective(trial):
+    extract_data = False
     oversample = False
 
     # read data
@@ -63,7 +65,49 @@ def main():
 
     else:
         # X_train_path, y_train_path, X_test_path = "data/train_feat_new.csv", "data/y_train.csv", "data/test_feat_new.csv"
+        # X_train_path, y_train_path, X_test_path = "data/train_combined.csv", "data/y_train.csv", "data/test_combined.csv"
         X_train_path, y_train_path, X_test_path = "data/train_combined.csv", "data/y_train.csv", "data/test_combined.csv"
+
+    X_train, y_train, train_ids, X_test, test_ids = read_data(X_train_path, y_train_path, X_test_path, extract_data)
+
+    print("Extracted / read data.")
+
+    X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=False)
+
+    print("Preprocessed.")
+
+    X_train_tune, X_val_tune, y_train_tune, y_val_tune = train_test_split(X_train, y_train, test_size=0.2, random_state=42, stratify=y_train)
+
+
+    params = {
+        "iterations": 1000,
+        "learning_rate": trial.suggest_float("learning_rate", 1e-3, 0.1, log=True),
+        "depth": trial.suggest_int("depth", 1, 10),
+        # "subsample": trial.suggest_float("subsample", 0.05, 1.0),
+        # "colsample_bylevel": trial.suggest_float("colsample_bylevel", 0.05, 1.0),
+        "min_data_in_leaf": trial.suggest_int("min_data_in_leaf", 1, 100),
+    }
+
+    model = CatBoostClassifier(**params, silent=True)
+    model.fit(X_train_tune, y_train_tune)
+    predictions = model.predict(X_val_tune)
+    f1 = f1_score(y_val_tune, predictions, average='micro')
+    return f1
+
+
+def main():
+    extract_data = False
+    oversample = False
+
+    # read data
+    if extract_data:
+        X_train_path, y_train_path, X_test_path = "data/X_train.csv", "data/y_train.csv", "data/X_test.csv"
+
+    else:
+        # X_train_path, y_train_path, X_test_path = "data/train_feat_new.csv", "data/y_train.csv", "data/test_feat_new.csv"
+        # X_train_path, y_train_path, X_test_path = "data/train_combined.csv", "data/y_train.csv", "data/test_combined.csv"
+        # X_train_path, y_train_path, X_test_path = "data/train_combined_lstm.csv", "data/y_train.csv", "data/test_combined_lstm.csv"
+        X_train_path, y_train_path, X_test_path = "data/train_combined_old.csv", "data/y_train.csv", "data/test_combined_old.csv"
 
     X_train, y_train, train_ids, X_test, test_ids = read_data(X_train_path, y_train_path, X_test_path, extract_data)
 
@@ -72,22 +116,16 @@ def main():
         extr = Extractor(X_train)
         train_feat = extr.extract()
         X_train = train_feat
-        train_feat.to_csv("data/train_feat_new.csv",index=False)
+        train_feat.to_csv("data/train_feat_new_old_dirty.csv", index=False)
 
         extr = Extractor(X_test)
         test_feat = extr.extract()
         X_test = test_feat
-        test_feat.to_csv("data/test_feat_new.csv",index=False)
+        test_feat.to_csv("data/test_feat_new_old_dirty.csv", index=False)
     
     print("Extracted / read data.")
 
     X_train, y_train, X_test = preprocess(X_train, y_train, X_test, drop_r=False)
-    # ix = (y_train == 1) | (y_train == 3)
-    # X_train = X_train[ix]
-    # y_train = y_train[ix]
-    # y_train[y_train == 1] = 0
-    # y_train[y_train == 3] = 1
-    # y_train = np.reshape(y_train, (y_train.shape[0], 1))
 
     print("Preprocessed.")
     
@@ -96,6 +134,7 @@ def main():
 
     model = get_model()
     f1_scores = 0
+    models = []
     for i, (train_index, test_index) in enumerate(splits):
         train_x, train_y, test_x, test_y = X_train[train_index], y_train[train_index], X_train[test_index], y_train[test_index]
 
@@ -117,6 +156,8 @@ def main():
 
         print(classification_report(test_y, pred))
 
+        models.append(model)
+
     print(f"Avg F1: {f1_scores / nfolds}")
 
     if oversample:
@@ -133,7 +174,18 @@ def main():
     out["id"] = test_ids
     out["y"] = res
 
-    out.to_csv("data/out_3class.csv", index=False)
+    print(out.shape)
+    print(out["id"].nunique())
 
+    out.to_csv("data/out.csv", index=False)
+
+
+def tune_params():
+    study = optuna.create_study(direction='minimize')
+    study.optimize(objective, n_trials=30)
+    print('Best hyperparameters:', study.best_params)
+    print('Best F1:', study.best_value)
+    
 
 main()
+# tune_params()
