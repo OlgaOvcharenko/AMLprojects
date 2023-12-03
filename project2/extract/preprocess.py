@@ -26,10 +26,9 @@ def preprocess(X_train: np.array, y_train: np.array, X_test: np.array, drop_r: b
     if drop_r:
         X_train.drop([f"r{r}" for r in range(0, 154)], axis=1, inplace=True)
         X_test.drop([f"r{r}" for r in range(0, 154)], axis=1, inplace=True)
-    # sns.heatmap(X_train.corr())
 
-    X_train.dropna(axis=1, how='all', inplace=True)
-    X_test = X_test[X_train.columns]
+    # X_train.dropna(axis=1, how='all', inplace=True)
+    # X_test = X_test[X_train.columns]
 
     X_train.replace(np.inf,np.nan,inplace=True)
     X_test.replace(np.inf,np.nan,inplace=True)

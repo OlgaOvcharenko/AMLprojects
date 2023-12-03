@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 from extract import Extractor
 from preprocess import preprocess
-from sklearn.model_selection import StratifiedKFold, train_test_split
+from sklearn.model_selection import KFold, StratifiedKFold, train_test_split
 from sklearn.metrics import classification_report, f1_score
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
@@ -107,7 +107,7 @@ def main():
         # X_train_path, y_train_path, X_test_path = "data/train_feat_new.csv", "data/y_train.csv", "data/test_feat_new.csv"
         # X_train_path, y_train_path, X_test_path = "data/train_combined.csv", "data/y_train.csv", "data/test_combined.csv"
         # X_train_path, y_train_path, X_test_path = "data/train_combined_lstm.csv", "data/y_train.csv", "data/test_combined_lstm.csv"
-        X_train_path, y_train_path, X_test_path = "data/train_combined_old.csv", "data/y_train.csv", "data/test_combined_old.csv"
+        X_train_path, y_train_path, X_test_path = "data/train_combined_cnn_64.csv", "data/y_train.csv", "data/test_combined_cnn_64.csv"
 
     X_train, y_train, train_ids, X_test, test_ids = read_data(X_train_path, y_train_path, X_test_path, extract_data)
 
@@ -132,7 +132,6 @@ def main():
     nfolds = 5
     splits = get_splits(X_train, y_train, nfolds)
 
-    model = get_model()
     f1_scores = 0
     models = []
     for i, (train_index, test_index) in enumerate(splits):

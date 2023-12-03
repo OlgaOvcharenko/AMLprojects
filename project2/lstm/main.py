@@ -79,8 +79,8 @@ def main_lstm():
     # Temporal solution to validate
     # TODO later add cross-fold once model is set
     X_train, y_train, X_val, y_val, X_test, X_test_ind = load_data(
-        X_train='./project2/data/train_combined_cnn_64.csv',
-        X_test='./project2/data/test_combined_cnn_64.csv',
+        X_train='./project2/data/X_train.csv',
+        X_test='./project2/data/X_test.csv',
         y_train='./project2/data/y_train.csv',
         read_train=read_train,
         read_test=read_test,

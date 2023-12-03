@@ -404,13 +404,13 @@ class LSTM1(nn.Module):
         # attn = torch.mean(hn, dim=0)
         
         # hn = self.dropout(hn)
-        # out = self.fc_single(hn)
+        out = self.fc_single(hn)
 
-        dense_outputs=self.fc_0(hn)
-        dense_outputs = self.relu(dense_outputs)
-        # dense_outputs = self.bn(dense_outputs)
-        dense_outputs=self.fc_2(dense_outputs)
-        out = self.relu(dense_outputs)
+        # dense_outputs=self.fc_0(hn)
+        # dense_outputs = self.relu(dense_outputs)
+        # # dense_outputs = self.bn(dense_outputs)
+        # dense_outputs=self.fc_2(dense_outputs)
+        # out = self.relu(dense_outputs)
         return hn, out
 
 def train(X_train, y_train, X_val, y_val, print_iter=20):
@@ -418,7 +418,7 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
 
     # Prepare data
     X_train = torch.Tensor(X_train)
-    X_train = torch.reshape(X_train, (X_train.shape[0], 1, X_train.shape[1]))
+    X_train = torch.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
     y_train = torch.Tensor(y_train)
 
     _, counts = np.unique(y_train, return_counts=True)
@@ -428,7 +428,7 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
     data_loader = DataLoader(MyDataset(X_train, y_train), batch_size=batch_size)#, sampler=sampler)
 
     X_val = torch.Tensor(X_val)
-    X_val = torch.reshape(X_val, (X_val.shape[0], 1, X_val.shape[1]))
+    X_val = torch.reshape(X_val, (X_val.shape[0], X_val.shape[1], 1))
     y_val = torch.Tensor(y_val)
 
     # Prepare model
@@ -436,7 +436,7 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
     lr = 0.01
 
     input_size = X_train.shape[2]
-    hidden_size = 8
+    hidden_size = 4
     num_layers = 2
     num_classes = 4
 
@@ -479,33 +479,34 @@ def train(X_train, y_train, X_val, y_val, print_iter=20):
 
         print('\nTrain Epoch / Num epochs: {}/{}....'.format(epoch, n_epochs), end=' ')
         print("Loss: {:.4f} F1: {:.5f}".format(np.mean(losses), f1_score(actual, expected, average='micro')))
-                    
-        with torch.no_grad():
-            model.eval()
-            predictions = []
-            for iteration in range(X_val.shape[0]):
-                batch_x = X_val[iteration:iteration+1]
-                if len(batch_x) > 0:
-                    hid, output = model(batch_x)
-                    _, pred = torch.max(output.data, 1)
-                    preds = pred.cpu().numpy()
-                    predictions.extend(preds)
 
-                # current_batch += 1
+        if epoch > 20 and epoch % 4 == 0:         
+            with torch.no_grad():
+                model.eval()
+                predictions = []
+                for iteration in range(X_val.shape[0]):
+                    batch_x = X_val[iteration:iteration+1]
+                    if len(batch_x) > 0:
+                        hid, output = model(batch_x)
+                        _, pred = torch.max(output.data, 1)
+                        preds = pred.cpu().numpy()
+                        predictions.extend(preds)
 
-            f1_val = f1_score(y_val, predictions, average='micro')
-            print('Eval Epoch / Num epochs: {}/{}....'.format(epoch, n_epochs), end=' ')
-            print(" F1: {:.5f}\n".format(f1_val))
+                    # current_batch += 1
 
-            if f1_val > 0.75 and f1_val > best_val:
-                best_val = f1_val
-                print(f"\nSaved model with F1: {f1_val}\n")
-                torch.save(model.state_dict(), f'project2/models/rnn_model_weights_best.pth')
+                f1_val = f1_score(y_val, predictions, average='micro')
+                print('Eval Epoch / Num epochs: {}/{}....'.format(epoch, n_epochs), end=' ')
+                print(" F1: {:.5f}\n".format(f1_val))
 
-            if epoch == n_epochs - 1:
-                print(classification_report(y_val, predictions))
-            
-            model.train(True)
+                if f1_val > 0.75 and f1_val > best_val:
+                    best_val = f1_val
+                    print(f"\nSaved model with F1: {f1_val}\n")
+                    torch.save(model.state_dict(), f'project2/models/rnn_model_weights_best.pth')
+
+                if epoch == n_epochs - 1:
+                    print(classification_report(y_val, predictions))
+                
+                model.train(True)
                     
         scheduler.step()
                 
