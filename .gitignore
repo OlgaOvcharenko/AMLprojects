@@ -166,7 +166,12 @@ old/
 project1/old/
 
 project1/data/
-
+project3/data/
+project3/Out/
+project3/Trained_boxes/
+project3/Trained_models/
+project3/Trained_models_euler_1/
+project3/images/
 project1/catboost_info
 
 __pycache__
@@ -177,3 +182,8 @@ data/
 
 models
 results
+
+project2/data.zip
+project2/outs/
+
+
