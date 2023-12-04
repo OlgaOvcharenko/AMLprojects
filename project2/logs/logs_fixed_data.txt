@@ -1,0 +1,63 @@
+Extracted / read data.
+Preprocessed.
+Fold 0: score 0.8095703125
+              precision    recall  f1-score   support
+
+           0       0.86      0.93      0.89       606
+           1       0.78      0.63      0.70        89
+           2       0.74      0.63      0.68       295
+           3       0.54      0.62      0.58        34
+
+    accuracy                           0.81      1024
+   macro avg       0.73      0.70      0.71      1024
+weighted avg       0.80      0.81      0.80      1024
+
+Fold 1: score 0.8134765625
+              precision    recall  f1-score   support
+
+           0       0.83      0.95      0.89       606
+           1       0.80      0.74      0.77        89
+           2       0.80      0.61      0.69       295
+           3       0.50      0.44      0.47        34
+
+    accuracy                           0.81      1024
+   macro avg       0.73      0.68      0.70      1024
+weighted avg       0.81      0.81      0.81      1024
+
+Fold 2: score 0.8172043010752688
+              precision    recall  f1-score   support
+
+           0       0.84      0.94      0.89       606
+           1       0.79      0.71      0.75        89
+           2       0.78      0.64      0.71       294
+           3       0.56      0.41      0.47        34
+
+    accuracy                           0.82      1023
+   macro avg       0.74      0.68      0.70      1023
+weighted avg       0.81      0.82      0.81      1023
+
+Fold 3: score 0.8142717497556208
+              precision    recall  f1-score   support
+
+           0       0.86      0.91      0.89       606
+           1       0.77      0.73      0.75        88
+           2       0.74      0.65      0.70       295
+           3       0.62      0.71      0.66        34
+
+    accuracy                           0.81      1023
+   macro avg       0.75      0.75      0.75      1023
+weighted avg       0.81      0.81      0.81      1023
+
+Fold 4: score 0.8064516129032258
+              precision    recall  f1-score   support
+
+           0       0.84      0.92      0.88       606
+           1       0.74      0.76      0.75        88
+           2       0.77      0.63      0.70       295
+           3       0.56      0.41      0.47        34
+
+    accuracy                           0.81      1023
+   macro avg       0.73      0.68      0.70      1023
+weighted avg       0.80      0.81      0.80      1023
+
+Avg F1: 0.8121949077468231

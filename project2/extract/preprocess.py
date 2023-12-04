@@ -1,3 +1,4 @@
+from catboost import CatBoostClassifier
 import numpy as np
 import phate
 import umap
@@ -7,34 +8,36 @@ from pyod.models.ecod import ECOD
 from sklearn.decomposition import PCA
 from sklearn.ensemble import IsolationForest
 from sklearn.impute import SimpleImputer
-from sklearn.linear_model import BayesianRidge, LassoCV, Lasso, LogisticRegression
+from sklearn.linear_model import BayesianRidge, LogisticRegression
 from sklearn.preprocessing import RobustScaler, MinMaxScaler, PolynomialFeatures, StandardScaler
 from sklearn.experimental import enable_iterative_imputer
 from sklearn.impute import IterativeImputer
-from sklearn.feature_selection import f_regression, SelectKBest, chi2, VarianceThreshold, RFE
+from sklearn.feature_selection import VarianceThreshold, RFE
 from dataheroes import CoresetTreeServiceDTC
-from sklearn.linear_model import LinearRegression
-from scipy.stats import f_oneway
 from sklearn.neighbors import LocalOutlierFactor
 from sklearn.covariance import EllipticEnvelope
 
 import pandas as pd
 pd.DataFrame.iteritems = pd.DataFrame.items
+import seaborn as sns
 
 
 def preprocess(X_train: np.array, y_train: np.array, X_test: np.array, drop_r: bool):
     if drop_r:
-        X_train.drop([f"r{r}" for r in range(0, 160)], axis=1, inplace=True)
+        X_train.drop([f"r{r}" for r in range(0, 154)], axis=1, inplace=True)
+        X_test.drop([f"r{r}" for r in range(0, 154)], axis=1, inplace=True)
 
-    X_train.dropna(axis=1, how='all', inplace=True)
-    X_test = X_test[X_train.columns]
+    # X_train.dropna(axis=1, how='all', inplace=True)
+    # X_test = X_test[X_train.columns]
 
     X_train.replace(np.inf,np.nan,inplace=True)
     X_test.replace(np.inf,np.nan,inplace=True)
 
     X_train, X_test = impute_mv(X_train, X_test, 'median')
-    X_train, X_test = select_features(X_train, y_train, X_test)
+    # X_train, X_test = select_features(X_train, y_train, X_test)
     X_train, X_test = scale_data(X_train, X_test, 'standard')
+
+    # X_train, y_train, X_test = detect_remove_outliers(X_train, y_train, X_test)
 
     return X_train, y_train, X_test
 
@@ -58,14 +61,14 @@ def select_features(X_train: np.array, y_train: np.array, X_test: np.array):
     # fs = SelectKBest(score_func=f_regression, k=200)
     # X_train = fs.fit_transform(X_train, y_train.ravel())
     # X_test = fs.transform(X_test)
-    # X_train, X_test = recursive_elemination(X_train, y_train, X_test)
+    X_train, X_test = recursive_elemination(X_train, y_train, X_test)
 
     print(X_train.shape)
     return X_train, X_test
 
 
 def recursive_elemination(X_train: np.array, y_train: np.array, X_test: np.array):
-    model = LogisticRegression()
+    model = CatBoostClassifier()
     rfe = RFE(model)
 
     X_train = rfe.fit_transform(X_train, y_train)
@@ -122,13 +125,12 @@ def impute_mv(X_train: np.array, X_test: np.array, method: str = 'iterative'):
 
 
 def detect_remove_outliers(X_train: np.array, y_train: np.array, X_test: np.array):
-    train_pred1 = detect_outlier_obs(X_train, y_train, 'coresets')
-    train_pred2 = detect_outlier_obs(X_train, X_test, 'ECOD')
-    train_pred3 = detect_outlier_obs(X_train, X_test, 'elliptic')
-    train_pred4 = detect_outlier_obs(X_train, X_test, 'local_factor')
+    # train_pred1 = detect_outlier_obs(X_train, y_train, 'coresets')
+    train_pred2 = detect_outlier_obs(X_train, y_train, 'ECOD')
+    # train_pred3 = detect_outlier_obs(X_train, X_test, 'elliptic')
+    # train_pred4 = detect_outlier_obs(X_train, X_test, 'local_factor')
 
-    train_pred = train_pred1 + train_pred2 + train_pred3 + train_pred4
-    train_pred = train_pred > 1
+    train_pred = train_pred2
 
     print(X_train.shape)
     X_train = X_train[train_pred]

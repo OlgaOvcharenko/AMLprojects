@@ -1,0 +1,23 @@
+Image size 400x400
+
+train amateur + prof + prof -> validate 0.1  prof [seeded]
+
+Put squares to square by padding, downsample both labels abd data, then hist eq
+
+90 epochs, dropout 0.3 -> 49
+dropout 0.4 + noise retrain
+
+seeded augnnattions
+
+
+300x - D
+200x - O
+Union
+
+
+To submit:
+Ignore empty frames and 300x O
+
+Our approach consists of multiple steps: preprocessing, train, postprocessing.
+Preprocessing
+
