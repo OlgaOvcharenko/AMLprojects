@@ -1,0 +1,14 @@
+wheel
+matplotlib
+matplotlib-inline
+numpy
+pandas
+scikit-image
+scikit-learn
+scipy
+seaborn
+torch
+torchaudio
+torchtext
+torchvision
+opencv-python
