@@ -284,11 +284,14 @@ def combine_loss(output, Y):
     return loss
 
 
-def validate(network, data, ):
+def validate(network, data):
     loader = DataLoader(MyDataset(data, False), batch_size=1, num_workers=4)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    network.train(False)
+    device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
+    
     val_accuracy, val_losses = [], []
+    
+    network.train(False)
+    network.eval()
     for it, (X, Y) in enumerate(loader):
         X, Y = (X.to(device), Y.to(device))
         output = network.forward(X, out_size=(Y.size()[1], Y.size()[1]))
@@ -303,42 +306,45 @@ def validate(network, data, ):
 
         loss = combine_loss(output, Y)
         val_losses.append(loss.cpu().detach().numpy())
+
+    network.train(True)
     return sum(val_losses) / len(val_losses), np.median(val_accuracy)
 
 
-def predict(network, data, ):
+def predict(network, data):
     loader = DataLoader(MyTestDataset(data), batch_size=1, num_workers=1)
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
 
     for video in data:
         video['predictions'] = []
 
-    for it, (X, (video_name, video_id, frame)) in enumerate(loader):
-        X = X.to(device)
-        output = network.forward(X, out_size=(X.size()[1], X.size()[2]))
+    network.eval()
+    with torch.no_grad():
+        for it, (X, (video_name, video_id, frame)) in enumerate(loader):
+            X = X.to(device)
+            output = network.forward(X, out_size=(X.size()[1], X.size()[2]))
 
-        output = torch.squeeze(output, 1)
-        mask = (torch.sigmoid(output) > 0.5)
-        prediction = mask.cpu().detach().numpy()
+            output = torch.squeeze(output, 1)
+            mask = (torch.sigmoid(output) > 0.5)
+            prediction = mask.cpu().detach().numpy()
 
-        prediction = np.squeeze(prediction, 0)
-        data[video_id]['predictions'].append(prediction)
+            prediction = np.squeeze(prediction, 0)
+            data[video_id]['predictions'].append(prediction)
 
     return data
 
 
 def load_weights(path):
-    network = UNet(encoder_args=(1, 64, 128, 256, 512),
-                   decoder_args=(512, 256, 128, 64))
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
+                   decoder_args=(1024, 512, 256, 128, 64))
+    device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
     network = network.to(device)
     network.load_state_dict(torch.load(path, map_location=device))
-    network.eval()
     return network
 
 
-def train(prof_train, val_train, check_point=None,
-          learning_rate=0.00001, batch_size=16, epochs=1000, print_iteration=40):
+def train(prof_train, val_train, check_point='ep-21',
+          learning_rate=0.01, batch_size=16, epochs=40, print_iteration=40):
     network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
                    decoder_args=(1024, 512, 256, 128, 64))
 
@@ -362,11 +368,12 @@ def train(prof_train, val_train, check_point=None,
         start = 0
 
     optimizer = torch.optim.Adam(network.parameters(), lr=learning_rate)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min')
 
     # sampler = getWeightedSampler(data_dir)
     loader = DataLoader(MyDataset(prof_train, augment=True), batch_size=batch_size, num_workers=8, shuffle=True)
 
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
     network = network.to(device)
 
     # Early stopping
@@ -402,33 +409,36 @@ def train(prof_train, val_train, check_point=None,
             #              name="epoc:" + str(epoch))
 
             if it % print_iteration == 0:
-                loss_val, acc_val = validate(network, val_train)
+                with torch.no_grad():
+                    loss_val, acc_val = validate(network, val_train)
 
-                print('{:3d} / {:3d} Train loss: {:8.4f}, train accuracy: {:10.4f}, '
-                      'validation loss: {:8.4f}, validation accuracy {:8.4f}'
-                      .format(it, epoch, sum(train_losses) / len(train_losses),
-                              sum(train_accuracy) / len(train_accuracy), loss_val, acc_val))
+                    print('{:3d} / {:3d} Train loss: {:8.4f}, train accuracy: {:10.4f}, '
+                        'validation loss: {:8.4f}, validation accuracy {:8.4f}'
+                        .format(it, epoch, sum(train_losses) / len(train_losses),
+                                sum(train_accuracy) / len(train_accuracy), loss_val, acc_val))
 
-                if last_loss < lowest_loss:
-                    lowest_loss = last_loss
-                    trigger_times = 0
-                    torch.save(network.state_dict(), "{}ep-{}-{}.pth".format(model_save_folder, epoch, it))
-                else:
-                    trigger_times += 1
-                    if trigger_times >= patience:
-                        print('Early stopping!')
-                        # return network
+                    if last_loss < lowest_loss:
+                        lowest_loss = last_loss
+                        trigger_times = 0
+                        torch.save(network.state_dict(), "{}ep-{}-{}.pth".format(model_save_folder, epoch, it))
+                    else:
+                        trigger_times += 1
+                        if trigger_times >= patience:
+                            print('Early stopping!')
+                            # return network
 
-                if last_loss >= lowest_loss and it == 0:
-                    torch.save(network.state_dict(), "{}ep-{}.pth".format(model_save_folder, epoch))
+                    if last_loss >= lowest_loss and it == 0:
+                        torch.save(network.state_dict(), "{}ep-{}.pth".format(model_save_folder, epoch))
 
-                # if loss_val < last_loss:
-                #     torch.save(network.state_dict(), "{}ep-{}-{}.pth".format(model_save_folder, epoch, it))
+                    # if loss_val < last_loss:
+                    #     torch.save(network.state_dict(), "{}ep-{}-{}.pth".format(model_save_folder, epoch, it))
 
-                last_loss = loss_val
+                    last_loss = loss_val
 
-                train_losses = []
-                train_accuracy = []
+                    train_losses = []
+                    train_accuracy = []
+
+                    scheduler.step(loss_val)
 
         if epoch % 10 == 0:
             cv2.destroyAllWindows()

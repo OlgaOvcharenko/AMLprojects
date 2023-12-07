@@ -448,20 +448,20 @@ def train_box():
 
 if __name__ == '__main__':
     # train_box()
-    # resize_w_img, resize_h_img = 400, 400
-    # resize_w_label, resize_h_label = 400, 400
-    #
-    # network = train(load_weights=False, path_weights='',
-    #                 resize_w_img=resize_w_img, resize_h_img=resize_h_img,
-    #                 resize_w_label=resize_w_label, resize_h_label=resize_h_label)
-    #
-    # predictions = test(network, resize_w_img=resize_w_img, resize_h_img=resize_h_img,
-    #                    resize_w_label=resize_w_label, resize_h_label=resize_h_label)
+    resize_w_img, resize_h_img = 400, 400
+    resize_w_label, resize_h_label = 400, 400
+    
+    network = train(load_weights=True, path_weights='Trained_small_model_512_euler/signal_unet/ep-21.pth',
+                    resize_w_img=resize_w_img, resize_h_img=resize_h_img,
+                    resize_w_label=resize_w_label, resize_h_label=resize_h_label)
+    
+    predictions = test(network, resize_w_img=resize_w_img, resize_h_img=resize_h_img,
+                       resize_w_label=resize_w_label, resize_h_label=resize_h_label)
 
     # save in correct format
     out_path = 'Out/out_new.pkl'
-    try_sample_and_predictions()
-    # save_zipped_pickle(predictions, out_path)
+    # try_sample_and_predictions()
+    save_zipped_pickle(predictions, out_path)
 
     # # # try_sample_and_predictions()
     # predictions = cut_box(out_path)
