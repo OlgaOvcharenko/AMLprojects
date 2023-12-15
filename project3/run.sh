@@ -2,9 +2,12 @@
 
 #SBATCH -o logs/log-%j.out
 #SBATCH --nodes=1
-#SBATCH --gpus=rtx_3090:1
-#SBATCH --cpus-per-task=8
-#SBATCH --time=23:00:00
+#SBATCH --gpus-per-node=1
+#SBATCH --gres=gpumem:32G
+#SBATCH --cpus-per-task=10
+#SBATCH --mem-per-cpu=10G
+#SBATCH --time=24:00:00
+#SBATCH --mail-type=BEGIN,END,FAIL
 
 mkdir -p logs
 
