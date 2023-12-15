@@ -30,7 +30,8 @@ class CNNBlock(nn.Module):
         c1_r = F.relu(c1)
         c2 = self.conv2(c1_r)
         c2_r = F.relu(c2)
-        return F.dropout2d(c2_r, 0.4)
+        res = F.dropout2d(c2_r, 0.4)
+        return res
 
 
 class Encoder(nn.Module):
@@ -343,13 +344,13 @@ def load_weights(path):
     return network
 
 
-def train(prof_train, val_train, check_point='ep-21',
-          learning_rate=0.01, batch_size=16, epochs=40, print_iteration=40):
+def train(prof_train, val_train, check_point='',
+          learning_rate=0.01, batch_size=64, epochs=200, print_iteration=40):
     network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
                    decoder_args=(1024, 512, 256, 128, 64))
 
-    # network = UNet(encoder_args=(1, 64, 128, 256),
-    #                decoder_args=(256, 128, 64))
+    # network = UNet(encoder_args=(1, 64, 128, 256, 512),
+    #                decoder_args=(512, 256, 128, 64))
 
     # network = UNet(encoder_args=(1, 64, 128),
     #                decoder_args=(128, 64))
@@ -397,6 +398,7 @@ def train(prof_train, val_train, check_point='ep-21',
             mask = (torch.sigmoid(output) > 0.5)
             Y_cpu = Y.cpu().numpy()
             prediction = mask.cpu().detach().numpy()
+
             train_accuracy.append(main.validate_single_image(Y_cpu, prediction))
 
             loss = combine_loss(output, Y)
