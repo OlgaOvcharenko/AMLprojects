@@ -294,7 +294,7 @@ def test(network, resize_w_img, resize_h_img, resize_h_label, resize_w_label):
     resize_hist_equalization_and_sharpen(test_data, train=False, resize_label=False,
                                          resize_h_img=resize_h_img, resize_w_img=resize_w_img,
                                          resize_h_label=resize_h_label, resize_w_label=resize_w_label,
-                                         hist_eq=True, sharpen=True)
+                                         hist_eq=True, sharpen=False)
 
     # make predictions
     # test_data = test_data[0:2]
@@ -339,13 +339,13 @@ def train(load_weights, path_weights, resize_w_img, resize_h_img, resize_h_label
         resize_hist_equalization_and_sharpen(train_data_all, train=True, resize_label=True,
                                              resize_h_img=resize_h_img, resize_w_img=resize_w_img,
                                              resize_h_label=resize_h_label, resize_w_label=resize_w_label,
-                                             hist_eq=True, sharpen=True)
+                                             hist_eq=True, sharpen=False)
 
         # preprocess validation without resize (like test)
         resize_hist_equalization_and_sharpen(val_data_prof, train=True, resize_label=True,
                                              resize_h_img=resize_h_img, resize_w_img=resize_w_img,
                                              resize_h_label=resize_h_label, resize_w_label=resize_w_label,
-                                             hist_eq=True, sharpen=True)
+                                             hist_eq=True, sharpen=False)
         
         network = model.train(prof_train=train_data_all, val_train=val_data_prof)
 
@@ -451,7 +451,7 @@ if __name__ == '__main__':
     resize_w_img, resize_h_img = 400, 400
     resize_w_label, resize_h_label = 400, 400
     
-    network = train(load_weights=True, path_weights='Trained_small_model_512_euler/signal_unet/ep-61.pth', 
+    network = train(load_weights=False, path_weights='',#'Trained_small_model_512_euler/signal_unet/ep-61.pth', 
                     resize_w_img=resize_w_img, resize_h_img=resize_h_img,
                     resize_w_label=resize_w_label, resize_h_label=resize_h_label)
     

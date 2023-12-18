@@ -73,10 +73,9 @@ class Decoder(nn.Module):
 
 
 def augment(X, Y, id, original_size, seed):
-    # TODO add pairs of augmentations
-    operation = int(original_size / (id + 1))
+    operation = int(math.floor(id/original_size))
     np.random.seed(seed)
-
+    # print(id, original_size, id/original_size, operation)
     if operation == 0:
         X = augmentions.dz(X, seed=seed)
         Y = augmentions.dz(Y, seed=seed)
@@ -125,13 +124,14 @@ def augment(X, Y, id, original_size, seed):
         X = augmentions.rts(X, seed=seed)
         Y = augmentions.rts(Y, seed=seed)
 
-    mean = 0
-    var = 0.1
-    sigma = var ** 0.5
-    # Set the effect of gausian range 0 to 255...
-    gaussian = np.random.normal(mean, sigma, (X.shape[0], X.shape[1])) * random.randint(30, 70)
+    elif operation == 12:
+        mean = 0
+        var = 0.1
+        sigma = var ** 0.5
+        # Set the effect of gausian range 0 to 255...
+        gaussian = np.random.normal(mean, sigma, (X.shape[0], X.shape[1])) * random.randint(30, 70)
 
-    X = X + gaussian
+        X = X + gaussian
 
     # Clip X to correct range.
     X[X < 0] = 0
@@ -186,7 +186,7 @@ class MyDataset(Dataset):
         return X, Y
 
     def __len__(self):
-        return len(self.data) * (12 if self.augment else 1)
+        return len(self.data) * (14 if self.augment else 1)
 
 
 class MyTestDataset(Dataset):
@@ -345,7 +345,7 @@ def load_weights(path):
 
 
 def train(prof_train, val_train, check_point='',
-          learning_rate=0.01, batch_size=64, epochs=200, print_iteration=40):
+          learning_rate=0.00001, batch_size=64, epochs=200, print_iteration=40):
     network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
                    decoder_args=(1024, 512, 256, 128, 64))
 
@@ -440,7 +440,7 @@ def train(prof_train, val_train, check_point='',
                     train_losses = []
                     train_accuracy = []
 
-                    scheduler.step(loss_val)
+                    # scheduler.step(loss_val)
 
         if epoch % 10 == 0:
             cv2.destroyAllWindows()
