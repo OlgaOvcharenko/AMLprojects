@@ -258,7 +258,7 @@ def show(image, name):
 
 
 if __name__ == "__main__":
-    m = cv2.imread("Data/monkey.jpeg")
+    m = cv2.imread("ben.jpeg")
     dim = (int)(m.shape[0])
     # dim = (dim, dim)
     m2 = m

@@ -8,7 +8,7 @@ import torch
 import torchvision
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-
+from UNet_3Plus import UNet_3Plus_DeepSup_CGM,UNet_3Plus
 import main
 import cv2
 import augmentions
@@ -295,7 +295,7 @@ def validate(network, data):
     network.eval()
     for it, (X, Y) in enumerate(loader):
         X, Y = (X.to(device), Y.to(device))
-        output = network.forward(X, out_size=(Y.size()[1], Y.size()[1]))
+        output = network(X)
 
         output = torch.squeeze(output, 1)
         mask = (torch.sigmoid(output) > 0.5)
@@ -323,7 +323,7 @@ def predict(network, data):
     with torch.no_grad():
         for it, (X, (video_name, video_id, frame)) in enumerate(loader):
             X = X.to(device)
-            output = network.forward(X, out_size=(X.size()[1], X.size()[2]))
+            output = network.forward(X)
 
             output = torch.squeeze(output, 1)
             mask = (torch.sigmoid(output) > 0.5)
@@ -345,9 +345,10 @@ def load_weights(path):
 
 
 def train(prof_train, val_train, check_point='',
-          learning_rate=0.00001, batch_size=16, epochs=200, print_iteration=40):
-    network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
-                   decoder_args=(1024, 512, 256, 128, 64))
+          learning_rate=0.00001, batch_size=8, epochs=200, print_iteration=40):
+    network = UNet_3Plus(in_channels=1,n_classes=2,)
+    # network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
+    #                decoder_args=(1024, 512, 256, 128, 64))
 
     # network = UNet(encoder_args=(1, 64, 128, 256, 512),
     #                decoder_args=(512, 256, 128, 64))
@@ -382,16 +383,22 @@ def train(prof_train, val_train, check_point='',
     lowest_loss = last_loss
     patience = 100
     trigger_times = 0
-
+    print('let\'s train!' )
     for epoch in range(start, epochs):
+        print(f'epoch::{epoch}')
         train_losses = []
         train_accuracy = []
         for it, (X, Y) in enumerate(loader):
+            # X=torch.swapaxes(X, 0, 1)
+            # Y = torch.swapaxes(Y, 0, 1)
             X, Y = (X.to(device), Y.to(device))
+
+            print(f'about to batch:: {it}, epoch {epoch}')
             network.train(True)
+            # print(f'shape of X {X.shape}')
 
             optimizer.zero_grad()
-            output = network.forward(X, out_size=(Y.size()[1], Y.size()[2]))
+            output = network(X)
 
             output = torch.squeeze(output, 1)
 
