@@ -11,8 +11,7 @@
 
 mkdir -p logs
 
-module load python
-
+module load eth_proxy gcc/11.4.0 python/3.11.6 cuda/12.1.1 
 nvidia-smi
 
 source "python_venv/bin/activate"

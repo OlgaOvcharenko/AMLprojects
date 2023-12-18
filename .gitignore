@@ -186,4 +186,7 @@ results
 project2/data.zip
 project2/outs/
 
-
+project3/Data/
+project3/Trained_small_model_512_euler/
+project3/logs/
+project3/python_venv/

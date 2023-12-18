@@ -451,7 +451,7 @@ if __name__ == '__main__':
     resize_w_img, resize_h_img = 400, 400
     resize_w_label, resize_h_label = 400, 400
     
-    network = train(load_weights=False, path_weights='',#'Trained_small_model_512_euler/signal_unet/ep-61.pth', 
+    network = train(load_weights=False, path_weights='', #'Trained_small_model_512_euler/signal_unet/ep-107.pth', 
                     resize_w_img=resize_w_img, resize_h_img=resize_h_img,
                     resize_w_label=resize_w_label, resize_h_label=resize_h_label)
     
