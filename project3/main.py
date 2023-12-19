@@ -339,13 +339,13 @@ def train(load_weights, path_weights, resize_w_img, resize_h_img, resize_h_label
         resize_hist_equalization_and_sharpen(train_data_all, train=True, resize_label=True,
                                              resize_h_img=resize_h_img, resize_w_img=resize_w_img,
                                              resize_h_label=resize_h_label, resize_w_label=resize_w_label,
-                                             hist_eq=True, sharpen=False)
+                                             hist_eq=True, sharpen=True)
 
         # preprocess validation without resize (like test)
         resize_hist_equalization_and_sharpen(val_data_prof, train=True, resize_label=True,
                                              resize_h_img=resize_h_img, resize_w_img=resize_w_img,
                                              resize_h_label=resize_h_label, resize_w_label=resize_w_label,
-                                             hist_eq=True, sharpen=False)
+                                             hist_eq=True, sharpen=True)
         
         network = model.train(prof_train=train_data_all, val_train=val_data_prof)
 
