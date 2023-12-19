@@ -344,7 +344,7 @@ def load_weights(path):
     return network
 
 
-def train(prof_train, val_train, check_point='Final-199',
+def train(prof_train, val_train, check_point=None,
           learning_rate=0.00001, batch_size=16, epochs=500, print_iteration=40):
     network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
                    decoder_args=(1024, 512, 256, 128, 64))
