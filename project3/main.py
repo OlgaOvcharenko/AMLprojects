@@ -288,7 +288,7 @@ def resize_unsquare(test_data, resize: bool, unsquare: bool, resize_method=cv2.I
 
 
 def test(network, resize_w_img, resize_h_img, resize_h_label, resize_w_label):
-    test_data = load_zipped_pickle('task3/test.pkl')
+    test_data = load_zipped_pickle('Data/test.pkl')
 
     # preprocess test without resize
     resize_hist_equalization_and_sharpen(test_data, train=False, resize_label=False,
@@ -317,7 +317,7 @@ def train(load_weights, path_weights, resize_w_img, resize_h_img, resize_h_label
 
     else:
         # load data
-        train_data = load_zipped_pickle('task3/train.pkl')
+        train_data = load_zipped_pickle('Data/train.pkl')
 
         extract_labeled_frames(train_data)
 
@@ -451,7 +451,7 @@ if __name__ == '__main__':
     resize_w_img, resize_h_img = 400, 400
     resize_w_label, resize_h_label = 400, 400
     
-    network = train(load_weights=False, path_weights='',#'Trained_small_model_512_euler/signal_unet/ep-61.pth', 
+    network = train(load_weights=False, path_weights='',#'Trained_small_model_512_euler_mh/signal_unet/ep-61.pth', 
                     resize_w_img=resize_w_img, resize_h_img=resize_h_img,
                     resize_w_label=resize_w_label, resize_h_label=resize_h_label)
     
