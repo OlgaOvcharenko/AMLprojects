@@ -175,6 +175,7 @@ def resize_hist_equalization_and_sharpen(train_data, train, resize_label, resize
             Hori = np.concatenate((img, img1, img2), axis=1)
             cv2.imshow('HORIZONTAL', Hori)
             cv2.waitKey(0) """
+
             # exit()
             data['augmented_frames'].append(img1)
             if train:
@@ -226,6 +227,7 @@ def preprocess_data_box(train_data, train, resize_box, resize_h_img, resize_w_im
             # cv2.imshow('HORIZONTAL', Hori)
             # cv2.waitKey(0)
             # exit()
+            
             data['augmented_frames'].append(img)
             if train:
                 data['augmented_box'].append(box)
