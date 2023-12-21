@@ -336,8 +336,7 @@ def predict(network, data):
 
 
 def load_weights(path):
-    network = UNet(encoder_args=(1, 64, 128, 256, 512, 1024),
-                   decoder_args=(1024, 512, 256, 128, 64))
+    network = UNet_3Plus(in_channels=1,n_classes=1,)
     device = torch.device('cuda' if torch.cuda.is_available() else ('mps' if torch.backends.mps.is_available() else 'cpu'))
     network = network.to(device)
     network.load_state_dict(torch.load(path, map_location=device))
