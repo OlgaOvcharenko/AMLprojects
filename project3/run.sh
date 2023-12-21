@@ -6,7 +6,7 @@
 #SBATCH --gres=gpumem:32G
 #SBATCH --cpus-per-task=10
 #SBATCH --mem-per-cpu=10G
-#SBATCH --time=24:00:00
+#SBATCH --time=48:00:00
 #SBATCH --mail-type=BEGIN,END,FAIL
 
 mkdir -p logs
