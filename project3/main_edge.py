@@ -160,13 +160,15 @@ def resize_hist_equalization_and_sharpen(train_data, train, resize_label, resize
                     label = label.astype(np.uint8)
                     label = cv2.resize(label, (resize_w_label, resize_h_label), interpolation=resize_method)
                     label = label.astype(old_type)
-
-
+            """ cv2.imshow("window", img) """
             img_max = img.max()
             img = img / img_max
-            blur = scipy.ndimage.gaussian_filter(img, 1)
+            blur = scipy.ndimage.gaussian_filter(img, 1.5)
 
-            img = feature.canny(blur, sigma=1.4)
+            img = np.array(feature.canny(blur, sigma=1.5), np.uint8)
+            """ cv2.imshow("canny", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows() """
             
             data['augmented_frames'].append(img)
             if train:
