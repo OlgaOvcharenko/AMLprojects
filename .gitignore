@@ -20,6 +20,8 @@ parts/
 sdist/
 var/
 wheels/
+project3/task3
+project3/Trained_small_model_512_euler
 share/python-wheels/
 *.egg-info/
 .installed.cfg
@@ -187,3 +189,10 @@ project2/data.zip
 project2/outs/
 
 project3/Trained_small_model_512_euler/
+
+
+Data/
+logs/
+python_venv/
+
+
