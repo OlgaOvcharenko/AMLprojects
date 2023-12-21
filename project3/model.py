@@ -358,12 +358,12 @@ def train(prof_train, val_train, check_point=None,
     # network = UNet(encoder_args=(1, 24, 48, 96, 192),
     #                decoder_args=(192, 96, 48, 24))
 
-    model_save_folder = "./Trained_small_model_512_euler/signal_unet/"
+    model_save_folder = "./Trained_small_model_512_euler/signal_unet_less_eval/"
     if not os.path.exists(model_save_folder):
         os.makedirs(model_save_folder)
 
     if check_point:
-        network.load_state_dict(torch.load('Trained_small_model_512_euler/signal_unet/{}.pth'.format(check_point)))
+        network.load_state_dict(torch.load('Trained_small_model_512_euler/signal_unet_less_eval/{}.pth'.format(check_point)))
         start = int(check_point.split("-")[1]) + 1
     else:
         start = 0
