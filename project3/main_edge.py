@@ -160,24 +160,17 @@ def resize_hist_equalization_and_sharpen(train_data, train, resize_label, resize
                     label = label.astype(np.uint8)
                     label = cv2.resize(label, (resize_w_label, resize_h_label), interpolation=resize_method)
                     label = label.astype(old_type)
-
-
+            """ cv2.imshow("window", img) """
             img_max = img.max()
-            img1 = img / img_max
-            img1 = scipy.ndimage.gaussian_filter(img1, 1)
+            img = img / img_max
+            blur = scipy.ndimage.gaussian_filter(img, 1.5)
 
-            img1 = feature.canny(img1, sigma=1.4)
+            img = np.array(feature.canny(blur, sigma=1.5), np.uint8)
+            """ cv2.imshow("canny", img)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows() """
             
-            """ img2 = clahe.apply(img)
-
-            img2 = augmentions.contrast(img2, size=4)
-
-            Hori = np.concatenate((img, img1, img2), axis=1)
-            cv2.imshow('HORIZONTAL', Hori)
-            cv2.waitKey(0) """
-
-            # exit()
-            data['augmented_frames'].append(img1)
+            data['augmented_frames'].append(img)
             if train:
                 data['augmented_labels'].append(label)
 
@@ -213,21 +206,14 @@ def preprocess_data_box(train_data, train, resize_box, resize_h_img, resize_w_im
                     box = cv2.resize(box, (resize_w_label, resize_h_label), interpolation=resize_method)
                     box = box.astype(old_type)
 
-            img_max = img.max()
-            img = img / img_max
-            blur = scipy.ndimage.gaussian_filter(img, 1)
-
-            img = feature.canny(blur, sigma=1.4)
-
             #  adaptive hist equalization
-            """ if hist_eq:
-                img = clahe.apply(img) """
+            if hist_eq:
+                img = clahe.apply(img)
 
             # Hori = np.concatenate((img, img1, img2), axis=1)
             # cv2.imshow('HORIZONTAL', Hori)
             # cv2.waitKey(0)
             # exit()
-            
             data['augmented_frames'].append(img)
             if train:
                 data['augmented_box'].append(box)

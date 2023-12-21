@@ -352,8 +352,8 @@ def train(prof_train, val_train, check_point=None,
     # network = UNet(encoder_args=(1, 64, 128, 256, 512),
     #                decoder_args=(512, 256, 128, 64))
 
-    # network = UNet(encoder_args=(1, 64, 128),
-    #                decoder_args=(128, 64))
+    """ network = UNet(encoder_args=(1, 64, 128),
+                   decoder_args=(128, 64)) """
 
     # network = UNet(encoder_args=(1, 24, 48, 96, 192),
     #                decoder_args=(192, 96, 48, 24))
