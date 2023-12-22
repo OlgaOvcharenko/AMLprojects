@@ -328,7 +328,7 @@ def train(load_weights, path_weights, resize_w_img, resize_h_img, resize_h_label
         train_data_all = train_data_prof
 
         # Expand with more of the validation data to get a bit more training data. aka now we have 90 % data
-        moreTrainingData, val_data_prof = train_test_split(val_data_prof, test_size=0.66, random_state=18)
+        moreTrainingData, val_data_prof = train_test_split(val_data_prof, test_size=0.1, random_state=18)
 
         train_data_all.extend(moreTrainingData)
 
