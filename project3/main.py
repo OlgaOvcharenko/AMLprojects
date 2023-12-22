@@ -322,15 +322,15 @@ def train(load_weights, path_weights, resize_w_img, resize_h_img, resize_h_label
         extract_labeled_frames(train_data)
 
         # split data
-        train_data_amateur, train_data_prof, val_data_prof = split_to_get_validation(train_data, split=0.05)
+        train_data_amateur, train_data_prof, val_data_prof = split_to_get_validation(train_data, split=0.3)
 
         # create train of both prof and amateur
         train_data_all = train_data_prof
 
         # Expand with more of the validation data to get a bit more training data. aka now we have 90 % data
-        # moreTrainingData, val_data_prof = train_test_split(val_data_prof, test_size=0.66, random_state=18)
+        moreTrainingData, val_data_prof = train_test_split(val_data_prof, test_size=0.66, random_state=18)
 
-        # train_data_all.extend(moreTrainingData)
+        train_data_all.extend(moreTrainingData)
 
         train_data_all.extend(train_data_all)
         train_data_all.extend(train_data_amateur)
@@ -441,17 +441,17 @@ def train_box():
     resize_w_img, resize_h_img = 100, 100
     resize_w_box, resize_h_box = 100, 100
 
-    network_box = train_box(load_weights=False, path_weights='Trained_boxes/signal_unet_less_eval/ep-531.pth',
+    network_box = train_box(load_weights=False, path_weights='Trained_boxes/signal_unet_smaller/ep-531.pth',
                             resize_w_img=resize_w_img, resize_h_img=resize_h_img,
                             resize_w_box=resize_w_box, resize_h_box=resize_h_box)
 
 
 if __name__ == '__main__':
     # train_box()
-    resize_w_img, resize_h_img = 400, 400
-    resize_w_label, resize_h_label = 400, 400
+    resize_w_img, resize_h_img = 240, 240
+    resize_w_label, resize_h_label = 240, 240
     
-    network = train(load_weights=False, path_weights='', #'Trained_small_model_512_euler/signal_unet_less_eval/ep-107.pth', 
+    network = train(load_weights=False, path_weights='', #'Trained_small_model_512_euler/signal_unet_smaller/ep-107.pth', 
                     resize_w_img=resize_w_img, resize_h_img=resize_h_img,
                     resize_w_label=resize_w_label, resize_h_label=resize_h_label)
     
